@@ -1,0 +1,320 @@
+{
+  "summary": {
+    "config": {
+      "dcs_path": "D:\\PSE\\博兴京博\\BXJingBo\\projects\\T90\\data\\merge_data.csv",
+      "lookback_minutes": 120,
+      "target_low": 7.5,
+      "target_high": 8.5
+    },
+    "lims": {
+      "raw_samples_after_grouping": 9653,
+      "t90_samples": 2908,
+      "time_min": "2023-11-22 16:00:00",
+      "time_max": "2025-10-19 13:00:00",
+      "t90_mean": 8.499312242090785,
+      "t90_std": 0.24710053453857922,
+      "inferred_columns": {
+        "sample_name": "样品名称",
+        "sample_time": "采样时间",
+        "volatile_lab": "挥发分,wt%",
+        "t90": "t´c(90),min",
+        "bromine": "▼溴含量,wt%",
+        "calcium_stearate": "硬脂酸钙含量,wt%",
+        "calcium": "钙含量,wt%",
+        "stabilizer": "稳定剂,wt%",
+        "mooney": "门尼粘度,ML（1+8）125℃",
+        "antioxidant": "防老剂,wt%",
+        "volatile_online": "在线监测挥发分"
+      }
+    },
+    "dcs": {
+      "rows": 935398,
+      "columns": 64,
+      "time_min": "2024-01-20 03:34:00",
+      "time_max": "2025-10-31 00:00:00"
+    },
+    "joined": {
+      "rows": 8746,
+      "t90_rows": 2726,
+      "in_spec_rows": 1687
+    }
+  },
+  "regression": {
+    "status": "ok",
+    "samples": 2726,
+    "mae": 0.14082387850847128,
+    "r2": 0.413733285929491,
+    "top_features": {
+      "overall": {
+        "calcium": 0.101467,
+        "calcium_stearate": 0.095365,
+        "bromine": 0.039327,
+        "FIC_C51401_PV_F_CV__last": 0.015521,
+        "stabilizer": 0.015139,
+        "volatile_lab": 0.011216,
+        "TI_C54002_PV_F_CV__mean": 0.011119,
+        "TI_C54002_PV_F_CV__max": 0.007773,
+        "TI_C50604_PV_F_CV__max": 0.007082,
+        "FIC_C30501_PV_F_CV__max": 0.006911,
+        "FIC_C51401_PV_F_CV__mean": 0.006783,
+        "FIC_C51401_PV_F_CV__min": 0.00675,
+        "FIC_C51401_PV_F_CV__slope": 0.006469,
+        "FIC_C51401_PV_F_CV__max": 0.006428,
+        "TI_C54002_PV_F_CV__last": 0.005615
+      },
+      "dcs_candidate": {
+        "FIC_C51401_PV_F_CV__last": 0.015521,
+        "TI_C54002_PV_F_CV__mean": 0.011119,
+        "TI_C54002_PV_F_CV__max": 0.007773,
+        "TI_C50604_PV_F_CV__max": 0.007082,
+        "FIC_C30501_PV_F_CV__max": 0.006911,
+        "FIC_C51401_PV_F_CV__mean": 0.006783,
+        "FIC_C51401_PV_F_CV__min": 0.00675,
+        "FIC_C51401_PV_F_CV__slope": 0.006469,
+        "FIC_C51401_PV_F_CV__max": 0.006428,
+        "TI_C54002_PV_F_CV__last": 0.005615,
+        "FIC_C53051A_PV_F_CV__min": 0.005394,
+        "FI_C53001_PV_F_CV__mean": 0.005374,
+        "FIC_C30501_PV_F_CV__min": 0.005264,
+        "TI_C56401_PV_F_CV__min": 0.005043,
+        "FIC_C30501_PV_F_CV__mean": 0.004801
+      },
+      "lims_context": {
+        "calcium": 0.101467,
+        "calcium_stearate": 0.095365,
+        "bromine": 0.039327,
+        "stabilizer": 0.015139,
+        "volatile_lab": 0.011216,
+        "mooney": 0.002153,
+        "volatile_online": 0.002114,
+        "antioxidant": 0.000449
+      }
+    }
+  },
+  "classification": {
+    "status": "ok",
+    "samples": 2726,
+    "accuracy": 0.7653958944281525,
+    "report": {
+      "0": {
+        "precision": 0.7631578947368421,
+        "recall": 0.5576923076923077,
+        "f1-score": 0.6444444444444445,
+        "support": 260.0
+      },
+      "1": {
+        "precision": 0.766260162601626,
+        "recall": 0.8933649289099526,
+        "f1-score": 0.824945295404814,
+        "support": 422.0
+      },
+      "accuracy": 0.7653958944281525,
+      "macro avg": {
+        "precision": 0.7647090286692341,
+        "recall": 0.7255286183011301,
+        "f1-score": 0.7346948699246292,
+        "support": 682.0
+      },
+      "weighted avg": {
+        "precision": 0.7650774798379254,
+        "recall": 0.7653958944281525,
+        "f1-score": 0.7561326542762273,
+        "support": 682.0
+      }
+    },
+    "top_features": {
+      "overall": {
+        "calcium": 0.024697,
+        "calcium_stearate": 0.023747,
+        "FI_C54051_PV_F_CV__min": 0.009147,
+        "FIC_C51401_PV_F_CV__last": 0.008082,
+        "FIC_C53051A_PV_F_CV__min": 0.007726,
+        "bromine": 0.007542,
+        "FI_C54051_PV_F_CV__last": 0.00719,
+        "FI_C54051_PV_F_CV__mean": 0.006976,
+        "FI_C54051_PV_F_CV__max": 0.006137,
+        "FIC_C51401_PV_F_CV__mean": 0.005726,
+        "TI_C53205_PV_F_CV__max": 0.005434,
+        "TI_C53205_PV_F_CV__mean": 0.005386,
+        "TI_CM53201_PV_F_CV__mean": 0.005378,
+        "volatile_lab": 0.005367,
+        "TI_CM54001_PV_F_CV__min": 0.005366
+      },
+      "dcs_candidate": {
+        "FI_C54051_PV_F_CV__min": 0.009147,
+        "FIC_C51401_PV_F_CV__last": 0.008082,
+        "FIC_C53051A_PV_F_CV__min": 0.007726,
+        "FI_C54051_PV_F_CV__last": 0.00719,
+        "FI_C54051_PV_F_CV__mean": 0.006976,
+        "FI_C54051_PV_F_CV__max": 0.006137,
+        "FIC_C51401_PV_F_CV__mean": 0.005726,
+        "TI_C53205_PV_F_CV__max": 0.005434,
+        "TI_C53205_PV_F_CV__mean": 0.005386,
+        "TI_CM53201_PV_F_CV__mean": 0.005378,
+        "TI_CM54001_PV_F_CV__min": 0.005366,
+        "FIC_C51401_PV_F_CV__max": 0.005285,
+        "FIC_C53051A_PV_F_CV__max": 0.004885,
+        "TI_CM53001_PV_F_CV__last": 0.004873,
+        "TI_CM54001_PV_F_CV__mean": 0.004774
+      },
+      "lims_context": {
+        "calcium": 0.024697,
+        "calcium_stearate": 0.023747,
+        "bromine": 0.007542,
+        "volatile_lab": 0.005367,
+        "volatile_online": 0.0022,
+        "mooney": 0.001823,
+        "stabilizer": 0.000551,
+        "antioxidant": 0.000326
+      }
+    }
+  },
+  "recommendations": {
+    "status": "ok",
+    "good_samples": 1687,
+    "bad_samples": 1039,
+    "median_neighbor_distance": 9.771698580121484,
+    "recommended_dcs_targets": [
+      {
+        "feature": "FIC_C51605_PV_F_CV__last",
+        "good_median": 6143.797350000001,
+        "bad_median": 6112.86525,
+        "delta_good_minus_bad": 30.9321000000009
+      },
+      {
+        "feature": "FIC_C51001_PV_F_CV__last",
+        "good_median": 49084.6836,
+        "bad_median": 49103.90825,
+        "delta_good_minus_bad": -19.22465000000375
+      },
+      {
+        "feature": "FI_C51005_S_PV_CV__last",
+        "good_median": 49150.1699,
+        "bad_median": 49131.0156,
+        "delta_good_minus_bad": 19.154300000001967
+      },
+      {
+        "feature": "FIC_C51003_PV_F_CV__last",
+        "good_median": 3183.44155,
+        "bad_median": 3164.65675,
+        "delta_good_minus_bad": 18.784799999999905
+      },
+      {
+        "feature": "FIC_C51401_PV_F_CV__last",
+        "good_median": 1005.5416,
+        "bad_median": 1018.3722,
+        "delta_good_minus_bad": -12.830600000000004
+      },
+      {
+        "feature": "PI_C51301_S_PV_CV__last",
+        "good_median": 306.4372,
+        "bad_median": 309.9594,
+        "delta_good_minus_bad": -3.522199999999998
+      },
+      {
+        "feature": "II_CM530A_PV_CV__last",
+        "good_median": 258.2007,
+        "bad_median": 254.97485,
+        "delta_good_minus_bad": 3.22584999999998
+      },
+      {
+        "feature": "PI_C51101A_S_PV_CV__last",
+        "good_median": 347.57624999999996,
+        "bad_median": 350.41705,
+        "delta_good_minus_bad": -2.8408000000000584
+      },
+      {
+        "feature": "PI_C51203A_S_PV_CV__last",
+        "good_median": 347.79925000000003,
+        "bad_median": 349.4576,
+        "delta_good_minus_bad": -1.6583499999999844
+      },
+      {
+        "feature": "PI_C51203B_S_PV_CV__last",
+        "good_median": 8.0776,
+        "bad_median": 6.69,
+        "delta_good_minus_bad": 1.3876
+      },
+      {
+        "feature": "PI_C51403_S_PV_CV__last",
+        "good_median": 290.216,
+        "bad_median": 291.6015,
+        "delta_good_minus_bad": -1.385499999999979
+      },
+      {
+        "feature": "TI_CM53001_PV_F_CV__last",
+        "good_median": 72.1885,
+        "bad_median": 71.0227,
+        "delta_good_minus_bad": 1.1658000000000044
+      },
+      {
+        "feature": "FIC_C30501_PV_F_CV__last",
+        "good_median": 121.24090000000001,
+        "bad_median": 120.07634999999999,
+        "delta_good_minus_bad": 1.1645500000000197
+      },
+      {
+        "feature": "TI_C50604_PV_F_CV__last",
+        "good_median": 36.7851,
+        "bad_median": 35.7751,
+        "delta_good_minus_bad": 1.009999999999998
+      },
+      {
+        "feature": "PI_C51101B_S_PV_CV__last",
+        "good_median": 3.0871500000000003,
+        "bad_median": 2.2957,
+        "delta_good_minus_bad": 0.7914500000000002
+      }
+    ],
+    "context_shifts": [
+      {
+        "feature": "calcium_stearate",
+        "good_median": 2.18,
+        "bad_median": 2.22,
+        "delta_good_minus_bad": -0.040000000000000036
+      },
+      {
+        "feature": "calcium",
+        "good_median": 2.18,
+        "bad_median": 2.22,
+        "delta_good_minus_bad": -0.040000000000000036
+      },
+      {
+        "feature": "volatile_lab",
+        "good_median": 0.23,
+        "bad_median": 0.21,
+        "delta_good_minus_bad": 0.020000000000000018
+      },
+      {
+        "feature": "volatile_online",
+        "good_median": 0.1918,
+        "bad_median": 0.2034,
+        "delta_good_minus_bad": -0.0116
+      },
+      {
+        "feature": "bromine",
+        "good_median": 1.98,
+        "bad_median": 1.97,
+        "delta_good_minus_bad": 0.010000000000000009
+      },
+      {
+        "feature": "stabilizer",
+        "good_median": 1.4,
+        "bad_median": 1.4,
+        "delta_good_minus_bad": 0.0
+      },
+      {
+        "feature": "mooney",
+        "good_median": 31.3,
+        "bad_median": 31.3,
+        "delta_good_minus_bad": 0.0
+      },
+      {
+        "feature": "antioxidant",
+        "good_median": 0.05,
+        "bad_median": 0.05,
+        "delta_good_minus_bad": 0.0
+      }
+    ]
+  }
+}

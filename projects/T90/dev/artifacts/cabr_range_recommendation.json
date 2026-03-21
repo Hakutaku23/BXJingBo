@@ -1,0 +1,106 @@
+{
+  "target_sample": {
+    "sample_time": "2025-10-19 11:00:00",
+    "t90": 8.6,
+    "current_calcium": 2.15,
+    "current_bromine": 1.97,
+    "is_in_spec": false
+  },
+  "method": {
+    "goal": "Recommend feasible calcium and bromine ranges under current observed process context.",
+    "primary_control_priority": "calcium",
+    "context_feature_count": 20,
+    "top_context_features": {
+      "FIC_C53051A_PV_F_CV__min": 0.008266,
+      "FI_C54051_PV_F_CV__last": 0.008258,
+      "FIC_C51401_PV_F_CV__mean": 0.008146,
+      "FI_C54051_PV_F_CV__max": 0.008134,
+      "FI_C54051_PV_F_CV__mean": 0.008085,
+      "FIC_C51401_PV_F_CV__last": 0.007895,
+      "TI_C51101B_S_PV_CV__mean": 0.00771,
+      "TI_C51101B_S_PV_CV__max": 0.007679,
+      "TI_C53205_PV_F_CV__mean": 0.007589,
+      "FIC_C53051A_PV_F_CV__mean": 0.007441,
+      "FI_C54051_PV_F_CV__min": 0.006958,
+      "TI_C51101B_S_PV_CV__last": 0.006895,
+      "FIC_C30501_PV_F_CV__min": 0.006777,
+      "TI_C51101B_S_PV_CV__min": 0.006667,
+      "FIC_C53051A_PV_F_CV__last": 0.006373,
+      "FIC_C30501_PV_F_CV__max": 0.006366,
+      "FIC_C30501_PV_F_CV__mean": 0.006351,
+      "TI_C53205_PV_F_CV__max": 0.006185,
+      "TI_C53205_PV_F_CV__last": 0.006092,
+      "TI_C54002_PV_F_CV__mean": 0.00548
+    },
+    "context_snapshot": {
+      "FIC_C53051A_PV_F_CV__min": 10.9137,
+      "FI_C54051_PV_F_CV__last": 510.049,
+      "FIC_C51401_PV_F_CV__mean": -0.3541239669421488,
+      "FI_C54051_PV_F_CV__max": 513.1816,
+      "FI_C54051_PV_F_CV__mean": 509.8572495867768,
+      "FIC_C51401_PV_F_CV__last": -0.3586,
+      "TI_C51101B_S_PV_CV__mean": 21.17043223140496,
+      "TI_C51101B_S_PV_CV__max": 21.236,
+      "TI_C53205_PV_F_CV__mean": 85.89818429752064,
+      "FIC_C53051A_PV_F_CV__mean": 13.994986776859506
+    }
+  },
+  "neighborhood": {
+    "samples": 400,
+    "good_samples": 268,
+    "bad_samples": 132,
+    "median_context_distance": 12.837979161840867
+  },
+  "recommendation": {
+    "status": "ok",
+    "good_neighbors": 268,
+    "bad_neighbors": 132,
+    "empirical_good_ranges": {
+      "calcium": {
+        "p10": 2.0869999999999997,
+        "p25": 2.11,
+        "median": 2.14,
+        "p75": 2.19,
+        "p90": 2.22,
+        "min": 1.98,
+        "max": 2.32
+      },
+      "bromine": {
+        "p10": 1.95,
+        "p25": 1.97,
+        "median": 1.98,
+        "p75": 1.99,
+        "p90": 2.0,
+        "min": 1.82,
+        "max": 2.02
+      }
+    },
+    "model_based_ranges": {
+      "calcium": {
+        "min": 2.08,
+        "max": 2.1702500000000002
+      },
+      "bromine": {
+        "min": 1.94,
+        "max": 2.0
+      }
+    },
+    "best_point": {
+      "calcium": 2.08,
+      "bromine": 2.0,
+      "in_spec_probability": 0.7993357967400355
+    },
+    "calcium_range_given_current_bromine": {
+      "bromine_fixed_at": 1.97,
+      "calcium_min": 2.08,
+      "calcium_max": 2.1275,
+      "max_probability": 0.7135186917398769
+    },
+    "bromine_range_given_current_calcium": {
+      "calcium_fixed_at": 2.15,
+      "bromine_min": 1.9849999999999999,
+      "bromine_max": 2.0,
+      "max_probability": 0.6555988938480385
+    }
+  }
+}

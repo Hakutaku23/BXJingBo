@@ -1,0 +1,126 @@
+# =========================
+# Python
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyd
+*.pyo
+*.so
+
+# Distribution / build
+build/
+dist/
+site/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+wheelhouse/
+
+# Test / coverage / type check
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.pyre/
+.pytype/
+.ruff_cache/
+.hypothesis/
+.nox/
+.tox/
+.cache/
+
+# Logs
+*.log
+logs/
+
+# Environment / local config
+.env
+.env.*
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# IDE / editor
+.vscode/
+.idea/
+*.iml
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+~$*
+
+# =========================
+# Project-specific runtime data
+# =========================
+# Ignore each subproject's private/local data directory
+projects/*/data/
+projects/*/data/**
+
+# Optional local outputs generated during research / debugging
+projects/*/outputs/
+projects/*/outputs/**
+projects/*/artifacts/
+projects/*/artifacts/**
+projects/*/tmp/
+projects/*/tmp/**
+projects/*/cache/
+projects/*/cache/**
+
+# Keep example data under version control
+!projects/*/data_example/
+!projects/*/data_example/**
+
+# =========================
+# Cython / compiled extension artifacts
+# =========================
+*.c
+*.cpp
+*.html
+
+# Generated extension modules (keep source .py tracked)
+# Uncomment if you decide compiled deliverables should not stay in repo
+# projects/*/core/**/*.pyd
+# projects/*/core/**/*.so
+# projects/*/core/**/*.dll
+
+# =========================
+# Codex / local agent config
+# =========================
+.codex/
+
+# =========================
+# Secrets / certificates / local credentials
+# =========================
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.secrets
+secrets/
+
+# =========================
+# Archives
+# =========================
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
+*.rar

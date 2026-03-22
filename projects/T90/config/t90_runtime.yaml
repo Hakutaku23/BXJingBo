@@ -1,0 +1,41 @@
+target_spec:
+  center: 8.45
+  tolerance: 0.25
+
+window:
+  minutes: 15
+  step_minutes: 1
+  time_column: time
+
+controls:
+  primary: calcium
+  secondary: bromine
+
+artifacts:
+  casebase_path: assets/t90_casebase.csv
+
+data_sources:
+  lims_path: data/t90-溴丁橡胶.xlsx
+  dcs_paths:
+    - data/merge_data.csv
+    - data/merge_data_otr.csv
+
+context_sensors:
+  - FIC_C51401_PV_F_CV
+  - FI_C54051_PV_F_CV
+  - FIC_C53051A_PV_F_CV
+  - TI_C54002_PV_F_CV
+  - TI_C50604_PV_F_CV
+  - TI_C53205_PV_F_CV
+  - TI_CM53201_PV_F_CV
+  - TI_CM54001_PV_F_CV
+  - TI_CM53001_PV_F_CV
+  - FIC_C30501_PV_F_CV
+  - FI_C53001_PV_F_CV
+  - FIC_C51001_PV_F_CV
+  - FIC_C51003_PV_F_CV
+  - FIC_C51605_PV_F_CV
+  - PI_C51301_S_PV_CV
+  - PI_C51101A_S_PV_CV
+  - PI_C51203A_S_PV_CV
+  - PI_C51203B_S_PV_CV

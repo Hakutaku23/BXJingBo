@@ -25,6 +25,8 @@ This directory is for research and validation only. It is not part of the delive
   Builds a DCS-only stage identifier on the current `50min` baseline, then decides stage by stage whether PH should be enabled and which lag is worth keeping.
 - `stage_aware_prototype.py`
   Replays a second-phase prototype policy: use `50min DCS` to identify the current stage first, then choose `PH off` or `PH(120min) on` by stage and compare that policy against the pure `50min DCS` baseline.
+- `stage_aware_interface_prototype.py`
+  Provides a dev-only entry function prototype that is closer to the future v2 interface: take the current `50min` DCS window, identify the current stage, decide whether `PH(120min)` should be enabled, and then return a structured recommendation report.
 
 ## Data assumptions
 
@@ -101,6 +103,12 @@ Replay the stage-aware second-phase prototype against the pure `50min DCS` basel
 & 'D:\miniconda3\envs\Learn\python.exe' projects\T90\dev\stage_aware_prototype.py --ph-lags 120,240,300 --stage-counts 2,3,4,5,6 --ph-feature-window 50
 ```
 
+Run the future-v2-style dev entry function prototype:
+
+```powershell
+& 'D:\miniconda3\envs\Learn\python.exe' projects\T90\dev\stage_aware_interface_prototype.py --use-private-example
+```
+
 ## Output files
 
 - `artifacts/t90_feature_table.csv`
@@ -155,6 +163,8 @@ Replay the stage-aware second-phase prototype against the pure `50min DCS` basel
   Chosen stage count, stage-aware PH policy, and the prototype-versus-baseline comparison report.
 - `artifacts/stage_aware_prototype_metrics.png`
   Visual side-by-side comparison of error, coverage, and composite score for the baseline and the stage-aware prototype.
+- `artifacts/stage_aware_interface_prototype_result.json`
+  A single-call structured recommendation report from the future-v2-style dev entry function prototype.
 
 ## How to read the output
 

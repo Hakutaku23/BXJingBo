@@ -1,5 +1,130 @@
 # T90 推荐控制接口
 
+本节为当前第二版交付说明，优先级高于本文档后面的历史记录。第二版已经从纯 `15min DCS` 基线升级为：
+
+- `50min DCS` 窗口作为默认在线状态输入
+- 先做 `DCS-only` 三阶段识别
+- 仅在命中的特定阶段启用 `PH(120min)` 增强
+- 其余阶段保持纯 `50min DCS` 推荐
+
+正式交付边界：
+
+- [config/t90_runtime.yaml](/D:/PSE/博兴京博/BXJingBo/projects/T90/config/t90_runtime.yaml)
+- [assets/t90_casebase.csv](/D:/PSE/博兴京博/BXJingBo/projects/T90/assets/t90_casebase.csv)
+- [assets/t90_casebase_ph120.csv](/D:/PSE/博兴京博/BXJingBo/projects/T90/assets/t90_casebase_ph120.csv)
+- [assets/t90_stage_policy.json](/D:/PSE/博兴京博/BXJingBo/projects/T90/assets/t90_stage_policy.json)
+- [core/](/D:/PSE/博兴京博/BXJingBo/projects/T90/core)
+- [interface.py](/D:/PSE/博兴京博/BXJingBo/projects/T90/interface.py)
+- [example.py](/D:/PSE/博兴京博/BXJingBo/projects/T90/example.py)
+- [README.md](/D:/PSE/博兴京博/BXJingBo/projects/T90/README.md)
+
+当前默认目标规格：
+
+- `T90 = 8.45 ± 0.25`
+- 等价目标区间：`8.20 ~ 8.70`
+
+## 当前接口
+
+主入口仍然是：
+
+```python
+from interface import recommend_t90_controls
+```
+
+最简在线调用：
+
+```python
+result = recommend_t90_controls({
+    "dcs_window": current_dcs_window_df,
+    "runtime_time": "2025-10-19 13:00:00",
+})
+```
+
+如果当前阶段允许 PH 增强，可以额外提供：
+
+```python
+result = recommend_t90_controls({
+    "dcs_window": current_dcs_window_df,
+    "ph_history": current_ph_history_df,
+    "runtime_time": "2025-10-19 13:00:00",
+})
+```
+
+输入约束：
+
+- `dcs_window` 是最近 `50min`、建议 `1min` 间隔、按时间升序排列的 DCS 窗口
+- `ph_history` 是可选输入，不是在线必填参数；未提供时系统仍会运行，并在需要时自动回退到纯 DCS 推荐
+- 运行时不依赖当前真实钙量、溴量或当前真实 T90
+- `reference_calcium` / `reference_bromine` 仅为可选参考值，不是在线必填项
+
+返回结果重点字段：
+
+- `target_range`
+- `stage_decision`
+- `current_ph_features`
+- `recommendation.recommended_calcium_range`
+- `recommendation.recommended_bromine_range`
+- `recommendation.best_point`
+- `warnings`
+
+## 第二版方法结论
+
+已经完成并用于第二版定型的实验包括：
+
+1. 单窗口扫描：`15min` 不是最优，长窗口更适合当前工况识别。
+2. 多尺度窗口对比：简单拼接多窗口特征没有稳定优于单窗口。
+3. 局部精扫：`50min` 比 `60min` 更适合作为综合默认窗口。
+4. PH 滞后验证：PH 不能作为全局固定主输入，只适合作为条件增强项。
+5. 分段与阶段实验：正式第二版只保留 `DCS-only` 阶段识别，不把超过 `4h` 的 PH 滞后带入运行逻辑。
+
+当前第二版正式策略是：
+
+- 默认：`50min DCS`
+- 阶段识别：`3` 个阶段
+- PH：只在阶段策略允许时启用 `120min` 滞后增强
+- 超过 `4h` 的 PH 滞后：不进入第二版正式交付
+
+## 示例与打包
+
+运行示例：
+
+```bash
+python projects/T90/example.py
+```
+
+`example.py` 会同时展示两组调用结果：
+
+- 携带 `PH history` 的调用
+- 不携带 `PH history`、仅使用 `50min DCS` 的调用
+
+用来直观看到 `PH` 不是必填参数，以及在当前阶段下系统是否真的启用了 PH 增强。
+
+Linux 打包：
+
+```bash
+cd projects/T90
+chmod +x package_delivery.sh
+./package_delivery.sh
+```
+
+如果需要从离线私有数据重建第二版资产，使用：
+
+```bash
+python projects/T90/dev/build_v2_delivery_assets.py
+```
+
+这会刷新：
+
+- `assets/t90_casebase.csv`
+- `assets/t90_casebase_ph120.csv`
+- `assets/t90_stage_policy.json`
+
+## 说明
+
+从这里往后的内容保留为历史研发记录与旧版说明，当前正式交付请以本节为准。
+
+## Legacy Notes
+
 本子项目面向 CPU-only 部署，目标不是直接精确预测 `T90`，而是基于最近一段 DCS 工况窗口，从本地历史案例库中检索相似状态，并推荐更可能使 `T90` 落入目标区间的 `钙量范围` 与 `溴量范围`。
 
 当前默认目标区间为 `8.45 ± 0.25`，等价于 `8.20 ~ 8.70`，可在运行时通过配置或接口参数调整。

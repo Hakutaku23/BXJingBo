@@ -3,7 +3,7 @@ target_spec:
   tolerance: 0.25
 
 window:
-  minutes: 15
+  minutes: 50
   step_minutes: 1
   time_column: time
 
@@ -13,12 +13,28 @@ controls:
 
 artifacts:
   casebase_path: assets/t90_casebase.csv
+  ph_casebase_path: assets/t90_casebase_ph120.csv
+  stage_policy_path: assets/t90_stage_policy.json
+
+ph:
+  feature_window_minutes: 50
+  tolerance_minutes: 2
+  history_time_column: time
+  history_value_column: value
+  max_supported_lag_minutes: 240
+
+stage_aware:
+  enabled: true
+  stage_count: 3
+  enable_threshold: 0.002
+  fallback_to_dcs_only: true
 
 data_sources:
   lims_path: data/t90-溴丁橡胶.xlsx
   dcs_paths:
     - data/merge_data.csv
     - data/merge_data_otr.csv
+  ph_path: data/B4-AI-C53001A.PV.F_CV.xlsx
 
 context_sensors:
   - FIC_C51401_PV_F_CV

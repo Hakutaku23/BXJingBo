@@ -12,6 +12,7 @@ MODULE_NAMES = [
     "casebase",
     "runtime_config",
     "online_recommender",
+    "stage_aware_recommender",
 ]
 
 

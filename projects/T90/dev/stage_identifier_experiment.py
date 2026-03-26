@@ -59,7 +59,13 @@ def load_sources(config_path: Path) -> tuple[pd.DataFrame, pd.DataFrame, list[st
 
 def get_context_columns(casebase: pd.DataFrame) -> list[str]:
     numeric_columns = casebase.select_dtypes(include=["number"]).columns.tolist()
-    return [column for column in numeric_columns if column not in BLOCKED_COLUMNS and casebase[column].notna().sum() > 0]
+    return [
+        column
+        for column in numeric_columns
+        if column not in BLOCKED_COLUMNS
+        and "__" in column
+        and casebase[column].notna().sum() > 0
+    ]
 
 
 def evaluate_stage_counts(

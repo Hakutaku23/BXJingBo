@@ -12,7 +12,7 @@ PACKAGE_NAME="T90_delivery"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 SKIP_BUILD=0
 KEEP_STAGE=0
-required_modules=("window_encoder" "casebase" "runtime_config" "online_recommender")
+required_modules=("window_encoder" "casebase" "runtime_config" "online_recommender" "stage_aware_recommender")
 
 usage() {
   cat <<'EOF'
@@ -65,7 +65,7 @@ done
 mkdir -p "${OUTPUT_DIR}"
 
 if [[ "${SKIP_BUILD}" -eq 0 ]]; then
-  echo "[1/5] Building core extensions"
+  echo "[1/6] Building core extensions"
   if [[ ! -f "${CORE_DIR}/build_linux.sh" ]]; then
     echo "Missing core/build_linux.sh in ${CORE_DIR}." >&2
     exit 1
@@ -75,10 +75,10 @@ if [[ "${SKIP_BUILD}" -eq 0 ]]; then
     PYTHON_BIN="${PYTHON_BIN}" bash ./build_linux.sh
   )
 else
-  echo "[1/5] Skipping core build"
+  echo "[1/6] Skipping core build"
 fi
 
-echo "[2/5] Checking compiled core artifacts"
+echo "[2/6] Checking compiled core artifacts"
 compiled_core=()
 for module_name in "${required_modules[@]}"; do
   shopt -s nullglob
@@ -106,8 +106,13 @@ cp "${PROJECT_DIR}/example.py" "${package_root}/"
 cp "${PROJECT_DIR}/README.md" "${package_root}/"
 cp "${CONFIG_DIR}/t90_runtime.yaml" "${package_root}/config/"
 cp "${ASSETS_DIR}/t90_casebase.csv" "${package_root}/assets/"
+cp "${ASSETS_DIR}/t90_casebase_ph120.csv" "${package_root}/assets/"
+cp "${ASSETS_DIR}/t90_stage_policy.json" "${package_root}/assets/"
 if [[ -f "${ASSETS_DIR}/t90_casebase.parquet" ]]; then
   cp "${ASSETS_DIR}/t90_casebase.parquet" "${package_root}/assets/"
+fi
+if [[ -f "${ASSETS_DIR}/t90_casebase_ph120.parquet" ]]; then
+  cp "${ASSETS_DIR}/t90_casebase_ph120.parquet" "${package_root}/assets/"
 fi
 if [[ -f "${ASSETS_DIR}/README.md" ]]; then
   cp "${ASSETS_DIR}/README.md" "${package_root}/assets/"
@@ -132,7 +137,10 @@ Included runtime files:
 - README.md
 - config/t90_runtime.yaml
 - assets/t90_casebase.csv
+- assets/t90_casebase_ph120.csv
+- assets/t90_stage_policy.json
 - assets/t90_casebase.parquet (optional, if present)
+- assets/t90_casebase_ph120.parquet (optional, if present)
 - assets/README.md (if present)
 - core/__init__.py
 - core/*.py runtime sources

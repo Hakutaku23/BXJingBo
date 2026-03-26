@@ -1,15 +1,20 @@
 # T90 Assets
 
-This directory stores deployment-side auxiliary artifacts.
+This directory stores the delivery-side auxiliary assets for the stage-aware T90 recommender.
 
 - `t90_casebase.csv`
-  Default historical guidance database used by the online recommender at the factory site.
+  The default 50-minute DCS casebase used by all stages.
+- `t90_casebase_ph120.csv`
+  The PH(120min)-augmented casebase used only when the current stage policy enables PH.
+- `t90_stage_policy.json`
+  The precomputed DCS-only stage identifier, stage policy, and PH enable/disable rules used at runtime.
 - `t90_casebase.parquet`
-  Optional high-efficiency version for environments that already provide `pyarrow` or `fastparquet`.
+  Optional parquet copy of the base casebase for environments that already provide `pyarrow` or `fastparquet`.
+- `t90_casebase_ph120.parquet`
+  Optional parquet copy of the PH-augmented casebase for the same environments.
 
-The recommended workflow is:
+Recommended workflow:
 
-1. Build or refresh the casebase from private raw data with `test.py`.
-2. Deliver the CSV file together with the interface package as the default runtime asset.
-3. Use the parquet file only when the target environment has a verified parquet engine.
-4. Let `interface.py` load the CSV file by default when no explicit `casebase_path` is provided.
+1. Refresh these assets from private offline data with [build_v2_delivery_assets.py](/D:/PSE/博兴京博/BXJingBo/projects/T90/dev/build_v2_delivery_assets.py).
+2. Deliver the CSV and JSON assets together with `core/`, `interface.py`, `example.py`, and `README.md`.
+3. Keep CSV as the default runtime path. Use parquet only when the target environment has a verified parquet engine.

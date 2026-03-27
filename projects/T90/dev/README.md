@@ -27,6 +27,18 @@ This directory is for research and validation only. It is not part of the delive
   Replays a second-phase prototype policy: use `50min DCS` to identify the current stage first, then choose `PH off` or `PH(120min) on` by stage and compare that policy against the pure `50min DCS` baseline.
 - `stage_aware_interface_prototype.py`
   Provides a dev-only entry function prototype that is closer to the future v2 interface: take the current `50min` DCS window, identify the current stage, decide whether `PH(120min)` should be enabled, and then return a structured recommendation report.
+- `risk_accuracy_experiment.py`
+  Replays the current v2 strategy on all aligned offline samples, validates whether upper-spec T90 risk can be inferred probabilistically, and summarizes calcium/bromine recommendation accuracy by T90 status and by stage.
+- `oos_alert_module.py`
+  Implements a dev-only dedicated out-of-spec alert module that uses the current DCS window as the main input, keeps PH optional, and returns a structured bad-sample alert probability.
+- `oos_alert_experiment.py`
+  Compares several dedicated bad-sample alert strategies, including global DCS-only classification, stage-specific DCS classification, and optional-PH stage-hybrid classification.
+- `oos_alert_threshold_sweep.py`
+  Sweeps the probability threshold of the standalone alert classifier and recommends practical operating points for low-miss, low-false-alarm, and balanced usage modes.
+- `oos_alert_interface_prototype.py`
+  Provides a dev-only future-interface prototype for the standalone bad-sample alert module, using the global DCS-only classifier and configurable threshold modes.
+- `METHOD.md`
+  Consolidated method note for the current v2 logic, including data flow, intermediate models, overspec-risk interpretation, and recommendation-accuracy definitions.
 
 ## Data assumptions
 
@@ -109,6 +121,30 @@ Run the future-v2-style dev entry function prototype:
 & 'D:\miniconda3\envs\Learn\python.exe' projects\T90\dev\stage_aware_interface_prototype.py --use-private-example
 ```
 
+Replay the current v2 strategy and evaluate overspec risk plus recommendation accuracy:
+
+```powershell
+& 'D:\miniconda3\envs\Learn\python.exe' projects\T90\dev\risk_accuracy_experiment.py
+```
+
+Evaluate a dedicated out-of-spec alert classifier:
+
+```powershell
+& 'D:\miniconda3\envs\Learn\python.exe' projects\T90\dev\oos_alert_experiment.py
+```
+
+Choose practical operating thresholds for the standalone alert classifier:
+
+```powershell
+& 'D:\miniconda3\envs\Learn\python.exe' projects\T90\dev\oos_alert_threshold_sweep.py
+```
+
+Run the future-interface-style dev entry for the standalone alert module:
+
+```powershell
+& 'D:\miniconda3\envs\Learn\python.exe' projects\T90\dev\oos_alert_interface_prototype.py --use-private-example --alert-mode low_miss
+```
+
 ## Output files
 
 - `artifacts/t90_feature_table.csv`
@@ -165,6 +201,20 @@ Run the future-v2-style dev entry function prototype:
   Visual side-by-side comparison of error, coverage, and composite score for the baseline and the stage-aware prototype.
 - `artifacts/stage_aware_interface_prototype_result.json`
   A single-call structured recommendation report from the future-v2-style dev entry function prototype.
+- `artifacts/risk_accuracy_experiment_results.csv`
+  Sample-level replay results for overspec-risk scoring and calcium/bromine recommendation accuracy under the current v2 strategy.
+- `artifacts/risk_accuracy_experiment_summary.json`
+  Summary metrics for upper-spec risk detection, threshold scan, and recommendation accuracy by T90 status and by stage.
+- `artifacts/oos_alert_experiment_predictions.csv`
+  Out-of-fold bad-sample alert probabilities for each tested dedicated alert strategy.
+- `artifacts/oos_alert_experiment_summary.json`
+  Dedicated bad-sample alert comparison report, including threshold scans, stage-level breakdown, and the recommended standalone alert strategy.
+- `artifacts/oos_alert_threshold_sweep_scan.csv`
+  Fine-grained threshold scan table for the recommended standalone alert classifier.
+- `artifacts/oos_alert_threshold_sweep_summary.json`
+  Recommended operating thresholds for low-miss, low-false-alarm, and balanced usage modes.
+- `artifacts/oos_alert_interface_prototype_result.json`
+  A single-call structured alert report from the future-interface-style dev prototype.
 
 ## How to read the output
 

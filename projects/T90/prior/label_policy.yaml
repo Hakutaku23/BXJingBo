@@ -1,0 +1,28 @@
+target_spec:
+  source: "legacy_v1_v2_policy"
+  t90_center: 8.45
+  t90_tolerance: 0.25
+  in_spec_low: 8.20
+  in_spec_high: 8.70
+  note: "Any T90 outside 8.20 to 8.70 is treated as out-of-spec in the legacy experiments."
+
+legacy_recommendation_task:
+  description: "Recommend calcium and bromine target ranges under the current DCS context."
+  primary_control_variable: "calcium"
+  secondary_control_variable: "bromine"
+  online_input_assumption:
+    current_true_calcium_available: false
+    current_true_bromine_available: false
+    dcs_window_available: true
+    ph_history_optional: true
+
+legacy_alert_task:
+  description: "Binary alert for whether T90 is outside the in-spec range."
+  target_name: "out_of_spec"
+  positive_definition: "T90 < 8.20 or T90 > 8.70"
+  note: "This was a same-sample label framing, which may be weaker than an event-level or future-window warning objective."
+
+open_questions_for_v3:
+  - "Should V3 keep the same-sample alert definition, or switch to future-window warning?"
+  - "Should V3 treat below-spec and above-spec as a joint task or as separate event types?"
+  - "Is the 8.45 +/- 0.25 spec fixed for V3, or still subject to plant confirmation?"

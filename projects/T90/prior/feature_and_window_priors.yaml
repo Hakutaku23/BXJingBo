@@ -1,0 +1,38 @@
+window_priors:
+  recommendation_baseline_minutes: 50
+  comparison_window_minutes:
+    - 60
+  confidence: "medium"
+  rationale:
+    best_single_window_by_composite_score: 50
+    best_single_window_by_calcium_mae: 60
+    note: "50 min was the best balanced recommendation window in the focused local scan, but the legacy candidate features were inherited from earlier 15 min-oriented screening."
+
+ph_priors:
+  online_required: false
+  role: "optional context enhancement"
+  strongest_legacy_candidate_lag_minutes: 120
+  disallowed_for_formal_use_minutes_over: 240
+  note: "Lags above 4 h were not considered suitable for formal deployment because of the LIMS sampling interval and alignment risk."
+
+stage_priors:
+  useful_for_recommendation: "legacy_candidate_only"
+  preferred_stage_count: 3
+  confidence: "medium_low"
+  note: "The legacy stage experiments suggested a practical 3-stage structure under 50 min DCS features, but the underlying point set should be rebuilt for V3."
+
+alert_priors:
+  best_legacy_probability_source: "single_logistic_oos"
+  why:
+    - "Best ranking quality among tested alert methods"
+    - "Better ROC AUC and average precision than the ensemble and committee alternatives"
+  caution:
+    - "Same-sample alerting still showed high false-alarm pressure"
+    - "Temporal smoothing reduced chatter but did not solve the core task-definition problem"
+
+feature_priors:
+  dominant_online_context_source: "DCS"
+  ph_source: "B4-AI-C53001A.PV.F_CV.xlsx"
+  calcium_and_bromine_truth_source: "LIMS"
+  point_selection_reuse: "not_recommended_without_rescreening"
+  recommendation_note: "Do not carry the old representative DCS point list directly into V3. The legacy list was influenced by an earlier 15 min framing and should be rebuilt under the V3 objective."

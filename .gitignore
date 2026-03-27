@@ -84,6 +84,8 @@ projects/*/cache/**
 projects/*/dev/artifacts/**
 projects/*/incoming_data/
 projects/*/matlab/
+projects/**/artifacts/
+projects/**/docs/
 
 # Keep example data under version control
 !projects/*/data_example/

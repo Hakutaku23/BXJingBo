@@ -1,0 +1,53 @@
+phase: phase1_warning
+
+objective:
+  name: same_sample_out_of_spec_warning
+  description: >
+    Given the current DCS operating context, determine whether the current
+    sample is likely to be out of the configured T90 specification window.
+
+target_spec:
+  center: 8.45
+  tolerance: 0.25
+
+warning_levels:
+  enabled: true
+  levels:
+    - warning
+    - alarm
+  note: >
+    Phase 1 only fixes the modeling target. Runtime warning/alarm policy will
+    be calibrated later and should not be hard-coded into the model dataset.
+
+data_sources:
+  lims_path: ../../data/t90-溴丁橡胶.xlsx
+  dcs_main_path: ../../data/merge_data.csv
+  dcs_supplemental_path: ../../data/merge_data_otr.csv
+  ph_path: ../../data/B4-AI-C53001A.PV.F_CV.xlsx
+
+window_search:
+  candidate_minutes:
+    - 10
+    - 15
+    - 20
+    - 30
+    - 45
+    - 50
+    - 60
+    - 75
+    - 90
+  min_points_per_window: 5
+
+feature_summary:
+  include_stats:
+    - last
+    - mean
+    - std
+    - min
+    - max
+    - delta
+    - slope
+    - valid_ratio
+
+output:
+  artifact_dir: ../dev/artifacts

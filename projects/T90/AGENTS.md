@@ -60,6 +60,13 @@ Everything else should be treated as development support, research material, int
 - Contains data that has already been organized, transformed, or cleaned through the legacy MATLAB-based preprocessing workflow.
 - Treat this directory as processed working data, not raw source data.
 
+
+Specific reference under `data/`:
+- `projects/T90/data/卤化位点.xlsx` is the factory-provided authoritative reference for DCS tag/point descriptions in the halogenation area.
+- When performing DCS tag interpretation, feature naming, signal screening, or signal grouping/classification, prefer this file as the primary source of truth.
+- This file is reference metadata / offline supporting material, not a new runtime input source.
+- Conclusions distilled from this file may be promoted into `prior/feature_notes.yaml`, `v3/config/`, or small supporting documentation, but the original spreadsheet must not become a hard runtime dependency.
+
 ### `data_example/`
 - Contains small, development-friendly example data used for demonstration, debugging, and reproducible examples.
 - Prefer files here for `example.py` and README usage examples.

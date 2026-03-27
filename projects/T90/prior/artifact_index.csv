@@ -1,0 +1,11 @@
+artifact_id,purpose,relative_path,why_it_matters
+window_local_scan,Focused recommendation window comparison,"dev/artifacts/local_peak_focus_window_size_experiment_summary.json","Most direct evidence that 50 min is the best balanced recommendation baseline"
+window_multiscale,Multi-scale recommendation comparison,"dev/artifacts/multiscale_window_experiment_summary.json","Evidence that naive multi-scale concatenation was not a free improvement"
+stage_identifier,Stage count and stage-specific PH policy,"dev/artifacts/stage_identifier_experiment_summary.json","Primary legacy reference for 3-stage structure and PH(120 min) conditional usefulness"
+stage_aware_proto,Stage-aware recommendation uplift,"dev/artifacts/stage_aware_prototype_summary.json","Shows the size of the recommendation gain from optional PH under stage logic"
+risk_accuracy,Recommendation accuracy plus over-spec risk,"dev/artifacts/risk_accuracy_experiment_summary.json","Useful bridge artifact between recommendation and warning thinking"
+oos_method_benchmark,Alert method comparison,"dev/artifacts/oos_alert_method_experiment_summary.json","Best single reference for why logistic is the alert baseline"
+oos_thresholds,Alert threshold tradeoff,"dev/artifacts/logistic_balanced_oos_alert_threshold_sweep_summary.json","Useful when translating model probability into a plant threshold"
+oos_temporal,Temporal alert shaping,"dev/artifacts/oos_alert_temporal_policy_summary.json","Shows what temporal persistence can and cannot solve"
+legacy_method_note,Long-form legacy implementation explanation,"dev/docs/METHOD.md","Good background reference before rewriting the pipeline in V3"
+legacy_alert_note,Stage summary for alert work,"dev/docs/OOS_ALERT_PHASE_NOTE_zh.md","Useful human-readable note for the alert branch"

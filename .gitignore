@@ -86,6 +86,13 @@ projects/*/incoming_data/
 projects/*/matlab/
 projects/**/artifacts/
 projects/**/docs/
+projects/**/paper/
+projects/**/support/modules/
+projects/**/support/outputs/
+projects/**/support/report/
+projects/**/support/features/
+projects/**/support/targets/
+projects/**/support/evaluation/
 
 # Keep example data under version control
 !projects/*/data_example/

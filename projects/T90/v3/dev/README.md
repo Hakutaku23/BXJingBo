@@ -24,6 +24,10 @@ Current script index:
 - `experiments/phase1_alarm_probability_calibration_experiment.py`: evaluate whether the current-alarm head should output calibrated out-of-spec probability instead of only hard labels.
 - `experiments/phase1_three_class_probability_experiment.py`: evaluate direct three-class probabilities for below-spec / in-spec / above-spec using the current short-window feature chain.
 - `experiments/phase1_three_class_feature_research.py`: re-search window, sensors, stats, and model family after changing the current head to a three-class probability target.
+- `experiments/phase1_future_head_lag_diagnosis.py`: diagnose lag and causal window choices for the future-head before entering EWMA/distillation design.
+- `experiments/phase1_current_head_ewma_distillation_experiment.py`: validate whether longer causal EWMA-weighted windows can improve the current three-class head beyond the short-window baseline.
+- `experiments/phase1_current_head_multiscale_weighted_fusion_experiment.py`: compare short-window baseline against multiscale window fusion and window-level weighted aggregation for the current three-class head.
+- `experiments/paper_faithful_ewma_current_head_experiment.py`: run the paper-faithful current-head EWMA applicability test with explicit tau, recursive EWMA condensation, and train-fold-only sensor re-screening.
 - `baselines/phase1_same_sample_logistic_window_scan.py`: all-point same-sample logistic baseline across candidate windows.
 - `baselines/phase1_compact_warning_modeling.py`: compact warning baselines using screened sensors and compact stat sets.
 - `baselines/phase1_warning_alarm_policy_experiment.py`: convert model probabilities into warning/alarm two-level policies and compare threshold strategies.

@@ -128,3 +128,30 @@ Hard requirements:
 - `requirements/runtime.txt` must not include GPU-only packages;
 - do not default to `cuda`, CUDAExecutionProvider, or any GPU-specific backend;
 - any optional acceleration path must be strictly non-default and must not affect the CPU delivery path.
+
+## Additional directory responsibility for cleanroom validation
+
+### `dev/cleanroom_validation/`
+- Use this directory for cleanroom experiments that intentionally restart analysis from scratch.
+- The goal here is method-transfer validation under minimal prior assumptions, not incremental optimization of previous experiment branches.
+- Work in this directory should, by default, ignore prior feature-engineering conclusions, locked sensor subsets, tuned window choices, and historical experiment recommendations unless the task explicitly asks for comparison against them.
+- Prefer starting from the broad available feature pool, basic data quality filtering, and clearly stated causal assumptions.
+- Reuse of offline reference metadata is allowed when it improves interpretability or signal naming consistency. In particular, `projects/T90/data/卤化位点.xlsx` remains the authoritative offline reference for DCS tag interpretation and feature naming.
+- Outputs here are development support only, not delivery-boundary artifacts, unless the user explicitly promotes them.
+- Do not let cleanroom experiment logic silently replace production logic in `core/`, `interface.py`, `example.py`, or `README.md` without explicit promotion.
+
+## Additional cleanroom experiment rules
+- Cleanroom experiments should prioritize isolating whether a method is intrinsically useful on this project, rather than preserving compatibility with earlier experiment scaffolding.
+- When starting a cleanroom experiment, explicitly document:
+  - the target task,
+  - the allowed data sources,
+  - whether historical feature selection is ignored,
+  - the baseline used for comparison,
+  - and the leakage controls used in evaluation.
+- Keep cleanroom experiment code, configs, notes, and reports inside `dev/cleanroom_validation/` unless the user explicitly asks otherwise.
+- If a cleanroom experiment needs feature screening, prefer:
+  - unsupervised pre-filtering on the full raw feature pool,
+  - followed by supervised screening strictly inside each training fold.
+- Do not perform full-dataset supervised feature selection before time-series validation.
+- If a cleanroom experiment is meant to validate a literature method, prefer a paper-faithful implementation first, and postpone hybrid extensions until after the first conclusion is documented.
+

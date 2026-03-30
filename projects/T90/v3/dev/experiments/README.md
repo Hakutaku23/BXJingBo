@@ -20,3 +20,7 @@ Current experiment scripts:
 - `phase1_alarm_probability_calibration_experiment.py`: probability-quality experiment for the current-alarm head, including raw vs calibrated probability comparison.
 - `phase1_three_class_probability_experiment.py`: three-class probability experiment for below-spec / in-spec / above-spec outputs.
 - `phase1_three_class_feature_research.py`: three-class-specific re-search of windows, sensors, stat sets, and model family for the current head.
+- `phase1_future_head_lag_diagnosis.py`: lag and window diagnosis for the future-head using simple causal window-statistics before EWMA distillation.
+- `phase1_current_head_ewma_distillation_experiment.py`: current-head-only EWMA/distillation experiment that tests whether a longer weighted causal window can preserve more operating-state information than the short-window baseline.
+- `phase1_current_head_multiscale_weighted_fusion_experiment.py`: current-head-only multiscale fusion experiment that compares direct multiscale concatenation, window-level weighted aggregation, and hybrid short-plus-weighted representations.
+- `paper_faithful_ewma_current_head_experiment.py`: paper-faithful current-head EWMA applicability test with explicit tau, recursive EWMA distilled samples, fixed `(tau, W, lambda)` grid, and train-fold-only sensor re-screening.

@@ -1,0 +1,8 @@
+experiment_name: ordinal_cumulative_current_head_monotonic_120min_ablation
+
+base_summary_json: artifacts/monotonic_120min/ordinal_cumulative_summary.json
+point_metadata_path: data/卤化点位.xlsx
+
+outputs:
+  artifacts_dir: artifacts/monotonic_120min_ablation
+  reports_dir: reports/monotonic_120min_ablation

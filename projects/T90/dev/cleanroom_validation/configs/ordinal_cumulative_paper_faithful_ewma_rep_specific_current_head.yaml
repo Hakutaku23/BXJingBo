@@ -1,0 +1,68 @@
+experiment_name: ordinal_cumulative_paper_faithful_ewma_rep_specific_current_head
+
+data:
+  dcs_main_path: data/merge_data.csv
+  dcs_supplemental_path: data/merge_data_otr.csv
+  lims_glob: "t90-*.xlsx"
+
+baseline:
+  lookback_minutes: 120
+  window_statistics:
+    - last
+    - mean
+    - std
+    - min
+    - max
+    - range
+    - delta
+
+ewma:
+  tau_grid:
+    - 0
+    - 120
+    - 240
+  window_grid:
+    - 120
+    - 240
+  lambda_grid:
+    - 0.97
+    - 0.985
+  min_rows_per_window: 5
+  min_valid_points_per_sensor: 3
+
+features:
+  max_missing_ratio: 0.50
+  near_constant_ratio: 0.995
+  duplicate_fill_value: -999999.0
+
+screening:
+  topk_sensors: 40
+
+validation:
+  n_splits: 5
+  min_splits: 3
+
+labels:
+  hard_three_class:
+    low: 8.2
+    high: 8.7
+  cumulative_thresholds:
+    - 8.0
+    - 8.2
+    - 8.7
+    - 8.9
+  boundary_low:
+    - 7.9
+    - 8.3
+  boundary_high:
+    - 8.6
+    - 8.8
+
+models:
+  logistic_max_iter: 2000
+  class_weight: balanced
+  apply_monotonic_correction: true
+
+outputs:
+  artifacts_dir: artifacts/ewma_rep_specific_current_head
+  reports_dir: reports/ewma_rep_specific_current_head

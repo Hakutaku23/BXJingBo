@@ -1,0 +1,78 @@
+experiment_name: ordinal_cumulative_current_head_monotonic_120min_boundary_weighted_inner_thresholds_identity_dedup_refined_band
+
+data:
+  dcs_main_path: data/merge_data.csv
+  dcs_supplemental_path: data/merge_data_otr.csv
+  lims_glob: "t90-*.xlsx"
+
+identity_dedup:
+  min_shared_rows: 1000
+  same_ratio_threshold: 1.0
+  atol: 1.0e-12
+  prefer_main_column: true
+
+features:
+  lookback_minutes: 120
+  window_statistics:
+    - last
+    - mean
+    - std
+    - min
+    - max
+    - range
+    - delta
+  max_missing_ratio: 0.50
+  near_constant_ratio: 0.995
+  duplicate_fill_value: -999999.0
+
+screening:
+  topk_sensors: 40
+
+validation:
+  n_splits: 5
+  inner_n_splits: 3
+  min_splits: 3
+
+labels:
+  hard_three_class:
+    low: 8.2
+    high: 8.7
+  cumulative_thresholds:
+    - 8.0
+    - 8.2
+    - 8.7
+    - 8.9
+  boundary_low:
+    - 7.9
+    - 8.3
+  boundary_high:
+    - 8.6
+    - 8.8
+
+models:
+  logistic_max_iter: 2000
+  class_weight: balanced
+  apply_monotonic_correction: true
+
+training_objective:
+  weighted_thresholds:
+    - 8.2
+    - 8.7
+  boundary_weight_grid:
+    - 2.50
+    - 2.75
+    - 3.00
+    - 3.25
+    - 3.50
+  warning_weight_grid:
+    - 1.00
+    - 1.10
+    - 1.25
+    - 1.40
+    - 1.50
+  inner_macro_f1_tolerance: 0.005
+  inner_balanced_accuracy_tolerance: 0.005
+
+outputs:
+  artifacts_dir: artifacts/monotonic_120min_boundary_weighted_inner_thresholds_identity_dedup_refined_band
+  reports_dir: reports/monotonic_120min_boundary_weighted_inner_thresholds_identity_dedup_refined_band

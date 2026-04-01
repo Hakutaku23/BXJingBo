@@ -1,0 +1,110 @@
+experiment_name: centered_quality_center_band_two_tier_risk_calibrated_current_head
+branch_stage: two_tier_risk_calibration_round1
+
+data:
+  dcs_main_path: data/merge_data.csv
+  dcs_supplemental_path: data/merge_data_otr.csv
+  lims_glob: "t90-*.xlsx"
+
+identity_dedup:
+  min_shared_rows: 1000
+  same_ratio_threshold: 1.0
+  atol: 1.0e-12
+  prefer_main_column: true
+
+features:
+  lookback_minutes: 120
+  window_statistics:
+    - last
+    - mean
+    - std
+    - min
+    - max
+    - range
+    - delta
+  max_missing_ratio: 0.50
+  near_constant_ratio: 0.995
+  duplicate_fill_value: -999999.0
+
+screening:
+  topk_sensors: 40
+
+validation:
+  n_splits: 5
+  inner_n_splits: 3
+
+labels:
+  hard_three_class:
+    low: 8.2
+    high: 8.7
+  cumulative_thresholds:
+    - 8.0
+    - 8.2
+    - 8.7
+    - 8.9
+  boundary_low:
+    - 7.9
+    - 8.3
+  boundary_high:
+    - 8.6
+    - 8.8
+
+baseline_reference:
+  training_objective:
+    weighted_thresholds:
+      - 8.2
+      - 8.7
+    boundary_weight_grid:
+      - 1.25
+      - 1.50
+      - 2.00
+      - 3.00
+    warning_weight_grid:
+      - 1.00
+      - 1.25
+      - 1.50
+      - 2.00
+    inner_macro_f1_tolerance: 0.005
+    inner_balanced_accuracy_tolerance: 0.005
+
+centered_quality:
+  target_center: 8.45
+  assay_resolution: 0.10
+  center_band_low: 8.35
+  center_band_high: 8.55
+  center_band_observed_support:
+    - 8.4
+    - 8.5
+
+risk_targets:
+  clear_low_threshold: 8.0
+  clear_high_threshold: 8.9
+  retest_low_threshold: 8.2
+  retest_high_threshold: 8.7
+
+semantic_search:
+  clear_risk_threshold_grid:
+    - 0.55
+    - 0.65
+    - 0.75
+  retest_risk_threshold_grid:
+    - 0.35
+    - 0.45
+    - 0.55
+  premium_center_threshold_grid:
+    - 0.65
+    - 0.75
+
+calibration:
+  method: isotonic
+  calibration_fraction: 0.20
+  min_calibration_rows: 80
+
+models:
+  logistic_max_iter: 2000
+  class_weight: balanced
+  apply_monotonic_correction: true
+
+outputs:
+  artifacts_dir: artifacts/centered_quality_center_band_two_tier_risk_calibrated_current_head
+  reports_dir: reports/centered_quality_center_band_two_tier_risk_calibrated_current_head

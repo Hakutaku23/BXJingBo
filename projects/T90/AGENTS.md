@@ -155,3 +155,24 @@ Hard requirements:
 - Do not perform full-dataset supervised feature selection before time-series validation.
 - If a cleanroom experiment is meant to validate a literature method, prefer a paper-faithful implementation first, and postpone hybrid extensions until after the first conclusion is documented.
 
+
+## Additional directory responsibility for centered quality validation
+
+### `dev/centered_quality_validation/`
+- Use this directory for cleanroom experiments that validate whether a target-centered quality objective better matches the real process than threshold-only task definitions.
+- Work in this directory should, by default, treat historical threshold-oriented conclusions as comparison baselines rather than inherited truths.
+- Prefer broad candidate sensor pools, simple causal feature families, and clearly documented desirability targets before any advanced feature-engineering extensions.
+- Reuse of offline reference metadata is allowed when it improves signal naming and interpretation. In particular, `projects/T90/data/卤化位点.xlsx` remains the authoritative offline reference for DCS tag interpretation and feature naming.
+- Outputs here are development support only, not delivery-boundary artifacts, unless the user explicitly promotes them.
+
+## Additional centered quality validation rules
+- Centered-quality experiments should prioritize validating the target definition itself:
+  - risk behavior,
+  - desirability around the target center,
+  - and the resulting business mapping.
+- If feature screening is needed, prefer:
+  - unsupervised pre-filtering on the full raw feature pool,
+  - followed by supervised screening strictly inside each training fold.
+- Do not perform full-dataset supervised feature selection before time-series validation.
+- Keep feature engineering simple until the centered-quality objective is shown to be useful.
+

@@ -3144,3 +3144,327 @@ pooled outer-test 结果如下：
 - 逐样本结果：`artifacts/monotonic_120min_boundary_weighted_inner_thresholds_identity_dedup_ph_lag/ph_lag_results.csv`
 - 点位身份别名表：`artifacts/monotonic_120min_boundary_weighted_inner_thresholds_identity_dedup_ph_lag/sensor_identity_alias_pairs.csv`
 - 摘要报告：`reports/monotonic_120min_boundary_weighted_inner_thresholds_identity_dedup_ph_lag/ph_lag_summary.md`
+
+# 2026-04-01 冻结主线可视化评价与在线测试判断
+
+## 1. 目标
+
+在不新增实验的前提下，基于当前冻结主线已有产物，生成一份便于现场沟通的可视化评价图，并明确回答：
+
+> 这条主线现在是否已经适合到现场进行在线测试？
+
+## 2. 可视化内容
+
+本轮生成了一张综合评价图，放在：
+
+- `reports/frozen_mainline_visual_review/frozen_mainline_visual_review.png`
+
+图中包含四部分：
+
+1. pooled 指标：对比 default 与当前冻结主线
+2. 逐折增益：看相对 default 的稳定性
+3. 冻结主线 confusion matrix：看三类样本误判结构
+4. 边界样本预测构成：看边界区是否仍存在高置信非 `warning`
+
+同时生成了配套判断报告：
+
+- `reports/frozen_mainline_visual_review/frozen_mainline_online_readiness.md`
+
+以及可复现脚本：
+
+- `scripts/plot_frozen_mainline_visual_review.py`
+
+## 3. 图表给出的核心读数
+
+冻结主线相对 default 的 pooled 改善仍然成立：
+
+- `macro_f1: 0.2610 -> 0.2674`
+- `balanced_accuracy: 0.3549 -> 0.3580`
+- `core_AP: 0.7151 -> 0.7215`
+- `warning_AP: 0.1924 -> 0.1963`
+- 边界区高置信非 `warning` 比例：`0.4945 -> 0.4848`
+
+但 confusion matrix 也清楚暴露了当前方法的上限：
+
+- acceptable recall：`0.2563`
+- warning recall：`0.4219`
+- unacceptable recall：`0.3957`
+
+同时，边界区仍有：
+
+- `351 / 724` 个样本被高置信地判成非 `warning`
+- 对应比例 `0.4848`
+
+也就是说，这条主线虽然比 default 更稳妥，但离“可直接替代人工判别”的可靠性还有明显距离。
+
+## 4. 当前判断
+
+到这一步，可以把是否适合现场在线测试的结论明确收紧成：
+
+> 可以去现场做旁路在线测试，但不适合直接进入无人值守自动在线判级或联动控制。
+
+更具体地说：
+
+1. `Go` for shadow / human-in-the-loop online test
+2. `No-Go` for autonomous online deployment
+
+## 5. 判断依据
+
+支持去现场做旁路在线测试的原因：
+
+1. 当前主线已经冻结，口径清晰，实验边界干净。
+2. identity de-dup、内侧阈值加权、monotonic cumulative 这些关键环节都已经固定。
+3. 相对 default，当前主线确实带来了小幅但一致的边界友好性改进。
+
+不支持直接自动上线的原因：
+
+1. 绝对指标仍偏低，尤其 `warning_AP` 和 `unacceptable_AP` 仍不足以承担高风险自动判定。
+2. 边界样本里仍有接近一半被高置信地判成非 `warning`。
+3. 折间表现仍不够稳定，说明对时段变化的鲁棒性还不足。
+4. 当前 cleanroom 只验证了离线时间切分效果，还没有完成真正在线链路上的缺失、漂移、延迟与可解释性校验。
+
+## 6. 对后续工作的含义
+
+因此，这次图表评估的价值不在于“宣布可以上线”，而在于把当前阶段定位得更清楚：
+
+1. 冻结主线已经足以支撑一次有控制的现场旁路试运行。
+2. 现场试运行的目标应是验证：
+   - 边界批次的实时表现
+   - 明显不合格批次的识别可靠性
+   - 点位缺失/漂移时的输出稳定性
+   - 预测与工艺员理解之间是否可解释
+3. 在这些问题没有补齐前，不应把当前方法直接作为自动判级器投入生产。
+
+# 2026-04-01 新分支切换：distributional interval prediction + reject option
+
+## 1. 分支切换原因
+
+在冻结当前最佳 ordinal / cumulative 主线之后，我重新阅读了你补充的：
+
+- `cleanroom_validation_experiment_plan_distributional_reject_option.md`
+
+这次切换的核心，不是把前面的工作推翻，而是承认一个越来越清楚的事实：
+
+> 当前剩余困难，可能更像“边界样本本身存在不可消除的模糊性”，而不只是“模型还不够强”。
+
+也就是说，问题未必是还要继续在：
+
+- EWMA
+- PH
+- 更多权重微调
+
+这些方向上挤局部增益；更可能是要正面验证：
+
+- 是否应该从“必须给出最终类别”转向“先给区间分布，再允许拒判 / 复检”
+
+我认为这个方向判断是成立的，因此正式打开新的 cleanroom 分支。
+
+## 2. 我对新计划的理解
+
+这份新计划最重要的地方，不是“改个模型”，而是“改决策真相观”：
+
+1. ordinal / cumulative 并没有被判错
+2. 它只是说明：
+   - 单纯把问题从硬三分类改成阈值概率，还不够
+   - 因为最后仍然被迫塌缩成一个最终标签
+3. 如果样本在 `8.2 / 8.7` 附近本来就带有真实的不确定性，那么更合适的 cleanroom 问题就应当是：
+   - 先预测 ordered interval distribution
+   - 再在业务层允许 `retest`
+
+换句话说，这条新分支不是在否定前线，而是在问：
+
+> “显式拒判”是不是当前这类边界模糊问题里缺失的那一层。
+
+## 3. 当前冻结比较锚点
+
+这条新分支的比较锚点保持不变，仍然是当前冻结主线：
+
+- `simple 120min causal stats`
+- `fold-local topk=40`
+- `sensor-identity de-dup`
+- `monotonic ordinal / cumulative`
+- `只对 8.2 / 8.7 做内侧阈值对称硬加权`
+
+当前锚点 pooled 指标：
+
+- `macro_f1 = 0.2674`
+- `balanced_accuracy = 0.3580`
+- `warning_AP = 0.1963`
+- `unacceptable_AP = 0.0850`
+- 边界区高置信非 `warning` 比例 = `0.4848`
+
+这意味着：
+
+- 新分支不是“从零开始”
+- 而是必须正面对比一个已经冻结、可解释、可旁路试运行的参考线
+
+## 4. 我决定实际采用的首轮实验路线
+
+在仔细读完新计划后，我没有直接把它展开成很多变体，而是收敛成一条很克制的首轮路线。
+
+### 4.1 数据与特征边界
+
+首轮不改特征系：
+
+- 仍使用 `merge_data.csv + merge_data_otr.csv`
+- 仍使用严格 identity de-dup
+- 仍使用 `simple 120min causal window stats`
+- 仍使用 fold-local `topk=40`
+- 仍使用 `TimeSeriesSplit(5)`
+
+原因很明确：
+
+- 这条分支要先验证的是“输出 formulation + reject layer”
+- 不是“特征是不是还要再换一轮”
+
+### 4.2 首轮区间定义
+
+固定 5 个 ordered bins：
+
+- `bin_1: y < 8.0`
+- `bin_2: 8.0 <= y < 8.2`
+- `bin_3: 8.2 <= y < 8.7`
+- `bin_4: 8.7 <= y < 8.9`
+- `bin_5: y >= 8.9`
+
+### 4.3 首轮 soft-label 规则
+
+我决定首轮不做“全阈值都模糊化”，而是采用更克制的规则：
+
+- 外侧 `8.0 / 8.9` 先保持硬边界
+- 只对内侧 `8.2 / 8.7` 做局部 soft labeling
+- 固定 `soft_radius = 0.05`
+- 在 `8.2 ± 0.05` 内，把质量线性分配给 `bin_2 / bin_3`
+- 在 `8.7 ± 0.05` 内，把质量线性分配给 `bin_3 / bin_4`
+- 其余位置保持所在 bin 的硬归属
+
+我之所以这样定，不是随意简化，而是为了延续我们前面已经学到的东西：
+
+1. 当前业务最关心的模糊性确实集中在 `8.2 / 8.7`
+2. 之前 outer threshold 一起软化，往往更容易伤到 clearly-unacceptable 侧
+3. 所以 first run 应先验证“只软化真正关心的内侧边界”是否已经足够
+
+### 4.4 首轮模型
+
+首轮模型先走最简单可审计路线：
+
+- 5-bin multinomial logistic
+
+考虑到标准实现对 soft targets 支持不直接，首轮实现准备采用：
+
+- 基于 non-zero soft-label bins 的加权样本复制
+
+这样做的原因：
+
+- 轻量
+- 容易 audit
+- 不会把 cleanroom 一上来带进复杂自定义损失
+
+### 4.5 首轮比较结构
+
+首轮只比较三件事：
+
+1. Frozen Baseline A：
+   - 当前冻结 ordinal / cumulative 主线
+2. Baseline B：
+   - distributional prediction
+   - 不允许 reject
+   - 直接塌缩为 `acceptable / warning / unacceptable`
+3. Treatment C：
+   - 同样的 distributional prediction
+   - 允许 `retest`
+
+### 4.6 首轮 reject 规则
+
+reject 层我也决定先固定为最简单、最可解释的一版：
+
+- 先得到 5-bin 分布
+- 再得到：
+  - `acceptable_prob = P(bin_3)`
+  - `warning_prob = P(bin_2) + P(bin_4)`
+  - `unacceptable_prob = P(bin_1) + P(bin_5)`
+- 计算：
+  - `max_business_prob`
+  - 5-bin normalized entropy
+- 若满足其一则输出 `retest`：
+  - `max_business_prob < tau_conf`
+  - 或 `normalized_entropy > tau_entropy`
+
+首轮阈值搜索网格先固定为：
+
+- `tau_conf in {0.45, 0.50, 0.55, 0.60}`
+- `tau_entropy in {0.80, 0.85, 0.90, 0.95}`
+
+这些阈值只允许在 outer-train 内通过 inner `TimeSeriesSplit(3)` 选，不得看 outer-test。
+
+### 4.7 首轮 guardrail
+
+为了避免 reject 被滥用，首轮还额外冻结一个 operational guardrail：
+
+- `reject_rate <= 0.25`
+
+如果一个 reject 规则只能靠大面积拒判来换指标，那这轮不算支持它。
+
+## 5. 首轮成功标准
+
+这条新分支不会因为“看起来更高级”就被判成功。  
+我准备按下面的标准来判断：
+
+1. reject 集合是否真的集中在模糊样本，而不是简单样本
+2. covered-sample 的 macro_f1 是否不劣于冻结主线太多
+3. non-rejected 样本上的 unacceptable miss 风险是否没有变坏
+4. 边界区高置信非 `warning` 是否下降
+5. Brier / log loss / entropy 这些分布质量指标是否合理
+6. 收益是否不是只出现在一两个幸运折里
+
+如果这些条件达不到，我会明确记为：
+
+- “distributional + reject 在当前 simple baseline 下尚未证明优于冻结主线”
+
+而不会模糊写成“方向大概有希望”。
+
+## 6. 当前阶段记录状态
+
+到这一步，我已经完成的是：
+
+1. 仔细阅读新实验路径文档
+2. 明确它与当前冻结主线的关系
+3. 将其收敛为一个具体、可执行、可审计的首轮路线
+4. 落下新的计划文档与 audit 锚点
+
+当前还没有开始的是：
+
+- 新分支的实际模型实现
+- distributional baseline B 的首轮运行
+- reject option treatment C 的首轮运行
+
+也就是说，当前状态是：
+
+> 新分支规划已冻结，实验尚未启动。
+
+## 7. 本轮新增记录
+
+本轮新增的正式记录文件：
+
+- `plans/distributional_reject_option_validation.md`
+- `reports/distributional_reject_option_current_head_audit.md`
+
+这两个文件的分工是：
+
+1. `plan`：
+   - 记录这条新分支的首轮执行路线
+2. `audit`：
+   - 作为这条分支后续实验记录的锚点
+   - 当前状态明确标注为 `pre-run planning frozen`
+
+## 8. 下一步建议
+
+下一步不应再继续讨论抽象方向，而是进入这条新分支的第一个真实 cleanroom run：
+
+1. 先实现 Baseline B：
+   - distributional prediction without reject
+2. 再实现 Treatment C：
+   - same distributional prediction + reject / retest
+3. 首轮完成后，再判断这条新路径是否真的值得继续
+
+这一步应该成为接下来的主线，而不是再回去继续微调旧分支。

@@ -1,0 +1,87 @@
+experiment_name: distributional_conformal_reject_current_head
+branch_stage: conformal_quantile_reject_first_pass
+
+data:
+  dcs_main_path: data/merge_data.csv
+  dcs_supplemental_path: data/merge_data_otr.csv
+  lims_glob: "t90-*.xlsx"
+
+identity_dedup:
+  min_shared_rows: 1000
+  same_ratio_threshold: 1.0
+  atol: 1.0e-12
+  prefer_main_column: true
+
+features:
+  lookback_minutes: 120
+  window_statistics:
+    - last
+    - mean
+    - std
+    - min
+    - max
+    - range
+    - delta
+  max_missing_ratio: 0.50
+  near_constant_ratio: 0.995
+  duplicate_fill_value: -999999.0
+
+screening:
+  topk_sensors: 40
+
+validation:
+  n_splits: 5
+
+labels:
+  hard_three_class:
+    low: 8.2
+    high: 8.7
+  cumulative_thresholds:
+    - 8.0
+    - 8.2
+    - 8.7
+    - 8.9
+  boundary_low:
+    - 7.9
+    - 8.3
+  boundary_high:
+    - 8.6
+    - 8.8
+
+models:
+  logistic_max_iter: 2000
+  class_weight: balanced
+
+distributional:
+  bin_names:
+    - bin_1
+    - bin_2
+    - bin_3
+    - bin_4
+    - bin_5
+  bin_edges:
+    - 8.0
+    - 8.2
+    - 8.7
+    - 8.9
+  soft_inner_thresholds:
+    - 8.2
+    - 8.7
+  soft_radius: 0.05
+  entropy_log_epsilon: 1.0e-12
+
+conformal:
+  alpha_grid:
+    - 0.05
+    - 0.10
+    - 0.15
+    - 0.20
+  calibration_fraction: 0.20
+  min_calibration_rows: 80
+  min_proper_train_rows: 120
+  coverage_slack: 0.03
+  min_decision_coverage: 0.45
+
+outputs:
+  artifacts_dir: artifacts/distributional_conformal_reject_current_head
+  reports_dir: reports/distributional_conformal_reject_current_head

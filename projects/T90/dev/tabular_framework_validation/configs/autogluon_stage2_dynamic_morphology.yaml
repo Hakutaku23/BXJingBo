@@ -1,0 +1,72 @@
+phase: stage2_dynamic_morphology
+
+data_source_statement:
+  source_condition: uncleaned_source
+  note: >
+    The starting source is uncleaned in the sense of not having gone through a
+    systematic project-wide cleaning workflow. Stage 2 builds a controlled
+    dynamic-feature package on top of the best S1 lag-scale packages without
+    introducing future leakage.
+
+paths:
+  lims_path: ../../../data/t90-溴丁橡胶.xlsx
+  dcs_main_path: ../../../data/merge_data.csv
+  dcs_supplemental_path: ../../../data/merge_data_otr.csv
+  artifact_dir: ../artifacts
+  report_dir: ../reports
+  stage1_summary_path: ../artifacts/stage1_lag_scale_summary.json
+
+target_spec:
+  center: 8.45
+  tolerance: 0.25
+
+snapshot:
+  min_points_per_window: 5
+  stats:
+    - mean
+    - std
+    - min
+    - max
+    - last
+    - range
+    - delta
+
+dynamic_pack:
+  enabled_features:
+    - slope
+    - diff_mean
+    - diff_std
+    - diff_max_abs
+    - sign_change_count
+    - upward_ratio
+    - downward_ratio
+    - local_autocorr
+    - volatility_ratio
+
+validation:
+  n_splits: 5
+
+tasks:
+  centered_desirability:
+    enabled: true
+  five_bin:
+    enabled: true
+    bins:
+      - -.inf
+      - 8.0
+      - 8.2
+      - 8.7
+      - 8.9
+      - .inf
+
+autogluon:
+  presets: medium_quality_faster_train
+  time_limit_seconds: 45
+  verbosity: 1
+  hyperparameters:
+    GBM: {}
+    XGB: {}
+
+baseline:
+  regression_model: ridge
+  multiclass_model: multinomial_logistic_regression

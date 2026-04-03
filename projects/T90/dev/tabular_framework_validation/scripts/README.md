@@ -5,6 +5,12 @@ validation workspace.
 
 - `run_autogluon_stage1_quickcheck.py`
   Stage 1 quick validation on uncleaned-source data with minimal necessary preprocessing.
+- `run_autogluon_stage0_baseline.py`
+  Stage-based `S0` baseline constructor aligned with `task.md`, producing the unified 120-minute causal snapshot table, results, feature catalog, leaderboard, and feature importance.
+- `run_autogluon_stage1_lag_scale.py`
+  `S1` lag-scale package validation on top of the `S0` baseline, now restricted to `centered_desirability` and `five_bin`.
+- `run_autogluon_stage2_dynamic_morphology.py`
+  `S2` controlled dynamic-morphology validation that compares the best `S1` lag-scale package against the same package plus hand-crafted dynamic features.
 - `run_autogluon_stage2_feature_engineering.py`
   Shared Stage 2 engineered snapshot experiment for mixed `high_risk` and `centered_desirability`.
 - `run_autogluon_stage2_desirability.py`

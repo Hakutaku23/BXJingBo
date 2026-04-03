@@ -1,0 +1,65 @@
+phase: stage1_quickcheck
+
+data_source_statement:
+  source_condition: uncleaned_source
+  note: >
+    The starting source is uncleaned in the sense of not having gone through a
+    systematic project-wide cleaning workflow. Stage 1 only allows minimal
+    necessary preprocessing.
+
+paths:
+  lims_path: ../../../data/t90-溴丁橡胶.xlsx
+  dcs_main_path: ../../../data/merge_data.csv
+  dcs_supplemental_path: ../../../data/merge_data_otr.csv
+  artifact_dir: ../artifacts
+  report_dir: ../reports
+
+target_spec:
+  center: 8.45
+  tolerance: 0.25
+
+snapshot:
+  lookback_minutes: 120
+  min_points_per_window: 5
+  stats:
+    - mean
+    - std
+    - min
+    - max
+    - last
+    - delta
+    - range
+
+validation:
+  n_splits: 5
+
+tasks:
+  low_risk:
+    enabled: true
+    threshold: 8.2
+  high_risk:
+    enabled: true
+    threshold: 8.7
+  centered_desirability:
+    enabled: true
+  five_bin:
+    enabled: false
+    bins:
+      - -inf
+      - 8.0
+      - 8.2
+      - 8.7
+      - 8.9
+      - inf
+
+autogluon:
+  presets: medium_quality_faster_train
+  time_limit_seconds: 120
+  verbosity: 1
+  hyperparameters:
+    GBM: {}
+    XGB: {}
+
+baseline:
+  binary_model: logistic_regression
+  regression_model: ridge

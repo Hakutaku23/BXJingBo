@@ -176,3 +176,19 @@ Hard requirements:
 - Do not perform full-dataset supervised feature selection before time-series validation.
 - Keep feature engineering simple until the centered-quality objective is shown to be useful.
 
+## Additional directory responsibility for tabular framework validation
+
+### `dev/tabular_framework_validation/`
+- Use this directory for validating AutoGluon, TabPFN, and similar tabular frameworks in a two-stage workflow.
+- The starting assumption must be explicit: the available source data is currently **uncleaned**, but stage 1 may still apply minimal necessary preprocessing.
+- Stage 1 is for quick signal validation only.
+- Stage 2 is allowed only if stage 1 shows that the framework is worth further investment, and may then introduce dedicated feature engineering and data cleaning.
+- Reuse of offline reference metadata is allowed when it improves signal naming and interpretation. In particular, `projects/T90/data/卤化位点.xlsx` remains the authoritative offline reference for DCS tag interpretation and feature naming.
+- Outputs here are development support only, not delivery-boundary artifacts, unless the user explicitly promotes them.
+
+## Additional tabular framework validation rules
+- Do not silently turn stage 1 into a heavily engineered benchmark.
+- Do not skip directly to stage 2.
+- Keep time-ordered validation throughout.
+- If cleaned-data comparisons are introduced, they must be clearly labeled as stage-2 conditions.
+

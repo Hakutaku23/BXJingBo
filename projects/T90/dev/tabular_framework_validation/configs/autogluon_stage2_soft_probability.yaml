@@ -1,0 +1,70 @@
+phase: stage2_soft_out_of_spec_probability
+
+data_source_statement:
+  source_condition: uncleaned_source
+  note: >
+    This branch still starts from the same uncleaned source state. It keeps the
+    stage-2 framework-oriented cleaning and feature engineering, but shifts the
+    label from hard classification to a fuzzy out-of-spec risk target.
+
+paths:
+  lims_path: ../../../data/t90-溴丁橡胶.xlsx
+  dcs_main_path: ../../../data/merge_data.csv
+  dcs_supplemental_path: ../../../data/merge_data_otr.csv
+  artifact_dir: ../artifacts
+  report_dir: ../reports
+
+target_spec:
+  center: 8.45
+  tolerance: 0.25
+
+label_fuzziness:
+  target_name: target_soft_out_of_spec_probability
+  boundary_softness: 0.05
+  rule: logistic_boundary_membership
+  note: >
+    Soft target is defined as sigmoid((abs(T90 - center) - tolerance) / boundary_softness).
+    At the nominal boundary the target equals 0.5, far-inside samples approach 0,
+    and far-outside samples approach 1.
+
+snapshot:
+  lookback_minutes: 120
+  min_points_per_window: 5
+  stats:
+    - mean
+    - std
+    - min
+    - max
+    - last
+    - delta
+    - range
+    - slope
+    - valid_ratio
+
+cleaning:
+  drop_feature_missing_ratio_above: 0.98
+  drop_high_corr_threshold: 0.9995
+
+selection:
+  soft_probability_top_k: 200
+
+validation:
+  n_splits: 5
+
+tasks:
+  high_risk:
+    enabled: false
+    threshold: 8.7
+  centered_desirability:
+    enabled: false
+
+autogluon:
+  presets: medium_quality_faster_train
+  time_limit_seconds: 180
+  verbosity: 1
+  hyperparameters:
+    GBM: {}
+    XGB: {}
+
+baseline:
+  regression_model: ridge

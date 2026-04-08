@@ -1,0 +1,87 @@
+phase: stage6_centered_quality_lag480_win60
+
+data_source_statement:
+  source_condition: uncleaned_source
+  note: >
+    This run keeps the Stage 6 centered-quality feature family unchanged and
+    only replaces the prior centered lag package with lag480_win60.
+
+paths:
+  lims_path: ../../../data/t90-溴丁橡胶.xlsx
+  dcs_main_path: ../../../data/merge_data.csv
+  dcs_supplemental_path: ../../../data/merge_data_otr.csv
+  artifact_dir: ../artifacts/stage6_centered_quality_lag480_win60
+  report_dir: ../reports/stage6_centered_quality_lag480_win60
+  stage5_summary_path: ../artifacts/stage5_quality_summary.json
+
+target_spec:
+  center: 8.45
+  tolerance: 0.25
+
+snapshot:
+  min_points_per_window: 5
+  stats:
+    - mean
+    - std
+    - min
+    - max
+    - last
+    - range
+    - delta
+
+validation:
+  n_splits: 5
+
+tasks:
+  centered_desirability:
+    enabled: true
+  five_bin:
+    enabled: false
+    bins:
+      - -.inf
+      - 8.0
+      - 8.2
+      - 8.7
+      - 8.9
+      - .inf
+
+override_input_package:
+  selected_stage1_variant: lag480_win60
+  selected_state_package: null
+  selected_interaction_package: flow_balance
+  quality_package: combined_quality
+  tau_minutes: 480
+  window_minutes: 60
+
+centered_quality_packages:
+  - name: center_stability
+    features:
+      - mean_abs_z
+      - center_band_ratio
+      - center_hold_ratio
+  - name: center_direction
+    features:
+      - last_z
+      - late_shift_z
+      - tail_bias
+      - reversion_score
+  - name: centered_quality_full
+    features:
+      - mean_abs_z
+      - center_band_ratio
+      - center_hold_ratio
+      - last_z
+      - late_shift_z
+      - tail_bias
+      - reversion_score
+
+autogluon:
+  presets: medium_quality_faster_train
+  time_limit_seconds: 45
+  verbosity: 1
+  hyperparameters:
+    GBM: {}
+    XGB: {}
+
+baseline:
+  regression_model: ridge

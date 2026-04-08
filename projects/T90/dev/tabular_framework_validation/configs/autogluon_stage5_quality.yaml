@@ -1,0 +1,82 @@
+phase: stage5_quality
+
+data_source_statement:
+  source_condition: uncleaned_source
+  note: >
+    The starting source is uncleaned in the sense of not having gone through a
+    systematic project-wide cleaning workflow. Stage 5 adds a controlled data-quality
+    feature pack on top of the current best validated task-specific inputs without
+    introducing future leakage.
+
+paths:
+  lims_path: ../../../data/t90-溴丁橡胶.xlsx
+  dcs_main_path: ../../../data/merge_data.csv
+  dcs_supplemental_path: ../../../data/merge_data_otr.csv
+  artifact_dir: ../artifacts
+  report_dir: ../reports
+  stage4_summary_path: ../artifacts/stage4_interaction_summary.json
+
+target_spec:
+  center: 8.45
+  tolerance: 0.25
+
+snapshot:
+  min_points_per_window: 5
+  stats:
+    - mean
+    - std
+    - min
+    - max
+    - last
+    - range
+    - delta
+
+validation:
+  n_splits: 5
+
+tasks:
+  centered_desirability:
+    enabled: true
+  five_bin:
+    enabled: true
+    bins:
+      - -.inf
+      - 8.0
+      - 8.2
+      - 8.7
+      - 8.9
+      - .inf
+
+quality_packages:
+  - name: missing_freeze
+    features:
+      - missing_ratio
+      - valid_count
+      - freeze_length
+      - freeze_ratio
+  - name: jump_irregularity
+    features:
+      - max_jump
+      - time_since_last_jump
+      - update_irregularity
+  - name: combined_quality
+    features:
+      - missing_ratio
+      - valid_count
+      - freeze_length
+      - freeze_ratio
+      - max_jump
+      - time_since_last_jump
+      - update_irregularity
+
+autogluon:
+  presets: medium_quality_faster_train
+  time_limit_seconds: 45
+  verbosity: 1
+  hyperparameters:
+    GBM: {}
+    XGB: {}
+
+baseline:
+  regression_model: ridge
+  multiclass_model: multinomial_logistic_regression

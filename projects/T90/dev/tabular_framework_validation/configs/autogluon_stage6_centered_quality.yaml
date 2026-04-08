@@ -1,0 +1,81 @@
+phase: stage6_centered_quality
+
+data_source_statement:
+  source_condition: uncleaned_source
+  note: >
+    The starting source is uncleaned in the sense of not having gone through a
+    systematic project-wide cleaning workflow. Stage 6 adds centered-quality
+    process features only for the centered_desirability task, on top of the
+    currently best validated centered input package, without introducing future leakage.
+
+paths:
+  lims_path: ../../../data/t90-溴丁橡胶.xlsx
+  dcs_main_path: ../../../data/merge_data.csv
+  dcs_supplemental_path: ../../../data/merge_data_otr.csv
+  artifact_dir: ../artifacts
+  report_dir: ../reports
+  stage5_summary_path: ../artifacts/stage5_quality_summary.json
+
+target_spec:
+  center: 8.45
+  tolerance: 0.25
+
+snapshot:
+  min_points_per_window: 5
+  stats:
+    - mean
+    - std
+    - min
+    - max
+    - last
+    - range
+    - delta
+
+validation:
+  n_splits: 5
+
+tasks:
+  centered_desirability:
+    enabled: true
+  five_bin:
+    enabled: false
+    bins:
+      - -.inf
+      - 8.0
+      - 8.2
+      - 8.7
+      - 8.9
+      - .inf
+
+centered_quality_packages:
+  - name: center_stability
+    features:
+      - mean_abs_z
+      - center_band_ratio
+      - center_hold_ratio
+  - name: center_direction
+    features:
+      - last_z
+      - late_shift_z
+      - tail_bias
+      - reversion_score
+  - name: centered_quality_full
+    features:
+      - mean_abs_z
+      - center_band_ratio
+      - center_hold_ratio
+      - last_z
+      - late_shift_z
+      - tail_bias
+      - reversion_score
+
+autogluon:
+  presets: medium_quality_faster_train
+  time_limit_seconds: 45
+  verbosity: 1
+  hyperparameters:
+    GBM: {}
+    XGB: {}
+
+baseline:
+  regression_model: ridge

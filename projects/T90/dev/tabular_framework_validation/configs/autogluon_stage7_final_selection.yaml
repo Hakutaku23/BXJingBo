@@ -1,0 +1,113 @@
+phase: stage7_final_selection
+
+data_source_statement:
+  source_condition: uncleaned_source
+  note: >
+    The starting source is uncleaned in the sense of not having gone through a
+    systematic project-wide cleaning workflow. Stage 7 combines only the
+    previously validated positive feature packages, then performs fold-safe
+    unsupervised pre-cleaning and supervised feature selection.
+
+paths:
+  lims_path: ../../../data/t90-溴丁橡胶.xlsx
+  dcs_main_path: ../../../data/merge_data.csv
+  dcs_supplemental_path: ../../../data/merge_data_otr.csv
+  artifact_dir: ../artifacts
+  report_dir: ../reports
+  stage1_summary_path: ../artifacts/stage1_lag_scale_summary.json
+  stage3_summary_path: ../artifacts/stage3_regime_summary.json
+  stage4_summary_path: ../artifacts/stage4_interaction_summary.json
+  stage5_summary_path: ../artifacts/stage5_quality_summary.json
+  stage6_summary_path: ../artifacts/stage6_centered_quality_summary.json
+
+target_spec:
+  center: 8.45
+  tolerance: 0.25
+
+snapshot:
+  min_points_per_window: 5
+  stats:
+    - mean
+    - std
+    - min
+    - max
+    - last
+    - range
+    - delta
+
+validation:
+  n_splits: 5
+
+tasks:
+  centered_desirability:
+    enabled: true
+    top_k_candidates:
+      - 250
+      - 400
+  five_bin:
+    enabled: true
+    bins:
+      - -.inf
+      - 8.0
+      - 8.2
+      - 8.7
+      - 8.9
+      - .inf
+    top_k_candidates:
+      - 150
+      - 250
+
+preclean:
+  max_missing_ratio: 0.98
+  near_constant_unique_threshold: 1
+  duplicate_hash_based: true
+
+quality_feature_map:
+  missing_freeze:
+    - missing_ratio
+    - valid_count
+    - freeze_length
+    - freeze_ratio
+  jump_irregularity:
+    - max_jump
+    - time_since_last_jump
+    - update_irregularity
+  combined_quality:
+    - missing_ratio
+    - valid_count
+    - freeze_length
+    - freeze_ratio
+    - max_jump
+    - time_since_last_jump
+    - update_irregularity
+
+centered_quality_feature_map:
+  center_stability:
+    - mean_abs_z
+    - center_band_ratio
+    - center_hold_ratio
+  center_direction:
+    - last_z
+    - late_shift_z
+    - tail_bias
+    - reversion_score
+  centered_quality_full:
+    - mean_abs_z
+    - center_band_ratio
+    - center_hold_ratio
+    - last_z
+    - late_shift_z
+    - tail_bias
+    - reversion_score
+
+autogluon:
+  presets: medium_quality_faster_train
+  time_limit_seconds: 45
+  verbosity: 1
+  hyperparameters:
+    GBM: {}
+    XGB: {}
+
+baseline:
+  regression_model: ridge
+  multiclass_model: multinomial_logistic_regression

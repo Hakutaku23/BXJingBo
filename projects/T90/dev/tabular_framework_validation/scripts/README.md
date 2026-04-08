@@ -11,6 +11,16 @@ validation workspace.
   `S1` lag-scale package validation on top of the `S0` baseline, now restricted to `centered_desirability` and `five_bin`.
 - `run_autogluon_stage2_dynamic_morphology.py`
   `S2` controlled dynamic-morphology validation that compares the best `S1` lag-scale package against the same package plus hand-crafted dynamic features.
+- `run_autogluon_stage3_regime_state.py`
+  `S3` controlled regime/state validation that compares the best `S1` lag-scale package against several state-feature packages fit only within each training fold.
+- `run_autogluon_stage4_interactions.py`
+  `S4` controlled process-interaction validation that adds a limited set of hand-crafted interaction packages on top of the currently best validated input package for each task.
+- `run_autogluon_stage5_quality.py`
+  `S5` controlled data-quality / sensor-health validation that adds quality feature packages on top of each task's current best validated input package.
+- `run_autogluon_stage6_centered_quality.py`
+  `S6` centered-quality validation that adds centered-process features only for `centered_desirability` on top of the best validated centered input package from `S5`.
+- `run_autogluon_stage7_final_selection.py`
+  `S7` final controlled re-selection that consolidates validated packages from `S1` to `S6` and locks one final recipe for `centered_desirability` and `five_bin`.
 - `run_autogluon_stage2_feature_engineering.py`
   Shared Stage 2 engineered snapshot experiment for mixed `high_risk` and `centered_desirability`.
 - `run_autogluon_stage2_desirability.py`

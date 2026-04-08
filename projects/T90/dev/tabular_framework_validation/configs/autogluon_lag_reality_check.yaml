@@ -1,0 +1,89 @@
+phase: lag_reality_check
+
+data_source_statement:
+  source_condition: uncleaned_source
+  note: >
+    This check reuses the AutoGluon validation branch label definitions and
+    metrics, but focuses only on whether the lag signals found in the cleanroom
+    branch transfer into the AutoGluon tabular setting.
+
+paths:
+  lims_path: ../../../data/t90-溴丁橡胶.xlsx
+  dcs_main_path: ../../../data/merge_data.csv
+  dcs_supplemental_path: ../../../data/merge_data_otr.csv
+  artifact_dir: ../artifacts/lag_reality_check
+  report_dir: ../reports/lag_reality_check
+  stage1_summary_path: ../artifacts/stage1_lag_scale_summary.json
+
+target_spec:
+  center: 8.45
+  tolerance: 0.25
+
+snapshot:
+  min_points_per_window: 5
+  stats:
+    - mean
+    - std
+    - min
+    - max
+    - last
+    - range
+    - delta
+
+validation:
+  n_splits: 5
+
+tasks:
+  centered_desirability:
+    enabled: true
+  five_bin:
+    enabled: true
+    bins:
+      - -.inf
+      - 8.0
+      - 8.2
+      - 8.7
+      - 8.9
+      - .inf
+
+autogluon:
+  presets: medium_quality_faster_train
+  time_limit_seconds: 45
+  verbosity: 1
+  hyperparameters:
+    GBM: {}
+    XGB: {}
+
+baseline:
+  regression_model: ridge
+  multiclass_model: multinomial_logistic_regression
+
+variants:
+  - name: lag0_win120
+    default_tau_minutes: 0
+    window_minutes: 120
+  - name: lag60_win120
+    default_tau_minutes: 60
+    window_minutes: 120
+  - name: lag120_win120
+    default_tau_minutes: 120
+    window_minutes: 120
+  - name: lag180_win120
+    default_tau_minutes: 180
+    window_minutes: 120
+  - name: hybrid_l180_drop_FI_C53001
+    default_tau_minutes: 60
+    window_minutes: 120
+    tau_overrides:
+      TI_CM511A_PV_F_CV: 180
+      TI_CM53201_PV_F_CV: 180
+      FI_C51005_S_PV_CV: 180
+      FIC_C51801_PV_F_CV: 180
+  - name: hybrid_l180_drop_TI_CM53201
+    default_tau_minutes: 60
+    window_minutes: 120
+    tau_overrides:
+      FI_C53001_PV_F_CV: 180
+      TI_CM511A_PV_F_CV: 180
+      FI_C51005_S_PV_CV: 180
+      FIC_C51801_PV_F_CV: 180

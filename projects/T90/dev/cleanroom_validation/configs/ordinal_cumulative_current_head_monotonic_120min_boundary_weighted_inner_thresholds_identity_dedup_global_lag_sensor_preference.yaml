@@ -1,0 +1,12 @@
+experiment_name: ordinal_cumulative_current_head_monotonic_120min_boundary_weighted_inner_thresholds_identity_dedup_global_lag_sensor_preference
+
+base_global_lag_summary_json: artifacts/monotonic_120min_boundary_weighted_inner_thresholds_identity_dedup_global_lag/global_lag_summary.json
+point_metadata_path: data/卤化点位.xlsx
+
+compare_lags:
+  - 60
+  - 180
+
+outputs:
+  artifacts_dir: artifacts/monotonic_120min_boundary_weighted_inner_thresholds_identity_dedup_global_lag_sensor_preference
+  reports_dir: reports/monotonic_120min_boundary_weighted_inner_thresholds_identity_dedup_global_lag_sensor_preference

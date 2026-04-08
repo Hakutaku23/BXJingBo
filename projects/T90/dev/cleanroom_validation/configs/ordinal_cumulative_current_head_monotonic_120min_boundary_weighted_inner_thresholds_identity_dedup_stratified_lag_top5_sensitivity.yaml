@@ -1,0 +1,49 @@
+experiment_name: ordinal_cumulative_current_head_monotonic_120min_boundary_weighted_inner_thresholds_identity_dedup_stratified_lag_top5_sensitivity
+
+base_global_lag_summary_json: artifacts/monotonic_120min_boundary_weighted_inner_thresholds_identity_dedup_global_lag/global_lag_summary.json
+
+stratified_lag:
+  base_short_lag_minutes: 60
+  slow_lag_minutes: 180
+  hybrid_groups:
+    - candidate_name: hybrid_l180_top5
+      l180_sensors:
+        - FI_C53001_PV_F_CV
+        - TI_CM511A_PV_F_CV
+        - TI_CM53201_PV_F_CV
+        - FI_C51005_S_PV_CV
+        - FIC_C51801_PV_F_CV
+    - candidate_name: hybrid_l180_drop_FI_C53001
+      l180_sensors:
+        - TI_CM511A_PV_F_CV
+        - TI_CM53201_PV_F_CV
+        - FI_C51005_S_PV_CV
+        - FIC_C51801_PV_F_CV
+    - candidate_name: hybrid_l180_drop_TI_CM511A
+      l180_sensors:
+        - FI_C53001_PV_F_CV
+        - TI_CM53201_PV_F_CV
+        - FI_C51005_S_PV_CV
+        - FIC_C51801_PV_F_CV
+    - candidate_name: hybrid_l180_drop_TI_CM53201
+      l180_sensors:
+        - FI_C53001_PV_F_CV
+        - TI_CM511A_PV_F_CV
+        - FI_C51005_S_PV_CV
+        - FIC_C51801_PV_F_CV
+    - candidate_name: hybrid_l180_drop_FI_C51005
+      l180_sensors:
+        - FI_C53001_PV_F_CV
+        - TI_CM511A_PV_F_CV
+        - TI_CM53201_PV_F_CV
+        - FIC_C51801_PV_F_CV
+    - candidate_name: hybrid_l180_drop_FIC_C51801
+      l180_sensors:
+        - FI_C53001_PV_F_CV
+        - TI_CM511A_PV_F_CV
+        - TI_CM53201_PV_F_CV
+        - FI_C51005_S_PV_CV
+
+outputs:
+  artifacts_dir: artifacts/monotonic_120min_boundary_weighted_inner_thresholds_identity_dedup_stratified_lag_top5_sensitivity
+  reports_dir: reports/monotonic_120min_boundary_weighted_inner_thresholds_identity_dedup_stratified_lag_top5_sensitivity

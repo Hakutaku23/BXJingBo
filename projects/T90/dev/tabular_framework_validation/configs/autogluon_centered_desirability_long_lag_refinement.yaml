@@ -1,0 +1,102 @@
+phase: centered_desirability_long_lag_refinement
+
+data_source_statement:
+  source_condition: uncleaned_source
+  note: >
+    This follow-up keeps only the centered_desirability task and refines the
+    long-lag search without treating 3h as a fixed fact. The purpose is to
+    determine whether longer lag families continue to show transferable signal
+    in the AutoGluon branch.
+
+paths:
+  lims_path: ../../../data/t90-溴丁橡胶.xlsx
+  dcs_main_path: ../../../data/merge_data.csv
+  dcs_supplemental_path: ../../../data/merge_data_otr.csv
+  artifact_dir: ../artifacts/centered_desirability_long_lag_refinement
+  report_dir: ../reports/centered_desirability_long_lag_refinement
+  stage1_summary_path: ../artifacts/stage1_lag_scale_summary.json
+
+target_spec:
+  center: 8.45
+  tolerance: 0.25
+
+snapshot:
+  min_points_per_window: 5
+  stats:
+    - mean
+    - std
+    - min
+    - max
+    - last
+    - range
+    - delta
+
+validation:
+  n_splits: 5
+
+tasks:
+  centered_desirability:
+    enabled: true
+  five_bin:
+    enabled: false
+    bins:
+      - -.inf
+      - 8.0
+      - 8.2
+      - 8.7
+      - 8.9
+      - .inf
+
+autogluon:
+  presets: medium_quality_faster_train
+  time_limit_seconds: 45
+  verbosity: 1
+  hyperparameters:
+    GBM: {}
+    XGB: {}
+
+baseline:
+  regression_model: ridge
+
+variants:
+  - name: lag0_win120
+    default_tau_minutes: 0
+    window_minutes: 120
+  - name: lag120_win60
+    default_tau_minutes: 120
+    window_minutes: 60
+  - name: lag180_win60
+    default_tau_minutes: 180
+    window_minutes: 60
+  - name: lag240_win60
+    default_tau_minutes: 240
+    window_minutes: 60
+  - name: lag300_win60
+    default_tau_minutes: 300
+    window_minutes: 60
+  - name: lag360_win60
+    default_tau_minutes: 360
+    window_minutes: 60
+  - name: lag480_win60
+    default_tau_minutes: 480
+    window_minutes: 60
+  - name: lag120_win120
+    default_tau_minutes: 120
+    window_minutes: 120
+  - name: lag180_win120
+    default_tau_minutes: 180
+    window_minutes: 120
+  - name: lag240_win120
+    default_tau_minutes: 240
+    window_minutes: 120
+  - name: lag300_win120
+    default_tau_minutes: 300
+    window_minutes: 120
+  - name: hybrid_l180_drop_FI_C53001
+    default_tau_minutes: 60
+    window_minutes: 120
+    tau_overrides:
+      TI_CM511A_PV_F_CV: 180
+      TI_CM53201_PV_F_CV: 180
+      FI_C51005_S_PV_CV: 180
+      FIC_C51801_PV_F_CV: 180

@@ -3468,3 +3468,567 @@ reject 层我也决定先固定为最简单、最可解释的一版：
 3. 首轮完成后，再判断这条新路径是否真的值得继续
 
 这一步应该成为接下来的主线，而不是再回去继续微调旧分支。
+
+## 9. 全局 lag cleanroom：冻结主线下的 L0 / L60 / L120 / L180 / L240 验证
+
+### 9.1 本轮目的
+
+- 驻厂反馈提示可能存在约 `3h` 的工艺滞后。
+- 本轮先不切换到 centered-quality，也不切换到 distributional / reject。
+- 只回答一个更窄的问题：
+  - 在当前已经冻结的 strongest threshold-oriented cleanroom 下，
+  - DCS 特征窗口是否应该相对样品时间整体后移，
+  - 以及 `L180` 是否有稳定信号。
+
+### 9.2 本轮 baseline 与控变量方式
+
+- baseline 继续固定为当前冻结主线：
+  - `simple 120min causal stats`
+  - `merge_data.csv + merge_data_otr.csv`
+  - strict sensor-identity de-dup
+  - fold-local `topk=40`
+  - monotonic ordinal / cumulative
+  - inner-threshold symmetric hard weighting on `8.2 / 8.7`
+- 本轮只改 DCS 窗口锚点，不改：
+  - 标签语义
+  - 模型家族
+  - 训练目标
+  - split 方式
+- 为了把 lag 本身和“重筛位点”区分开，本轮额外加了一个更严格的控制：
+  - 每个 outer fold 的传感器筛选与权重候选，统一在 `L0` train 上选出
+  - `L60 / L120 / L180 / L240` 只复用这套 `L0` 选择结果
+  - 不允许各 lag 臂自己重新筛点
+
+### 9.3 lag 定义
+
+- `L0`: `[t-120, t]`
+- `L60`: `[t-180, t-60]`
+- `L120`: `[t-240, t-120]`
+- `L180`: `[t-300, t-180]`
+- `L240`: `[t-360, t-240]`
+
+### 9.4 样本对齐说明
+
+- 为了保证各 lag 臂完全可比，本轮使用了所有 lag 臂的共同样本交集。
+- 结果是：
+  - `L0 / L60 / L120 / L180` 原始都可对齐出 `2726` 条
+  - `L240` 原始为 `2725` 条
+  - 最终共同 scored rows = `2725`
+- 因此，本轮 lag cleanroom 里的 `L0` 数值，不应与之前 frozen 主线在 `2726` 条样本上的旧数值直接逐位对照；
+  - 它是“在共同样本集 + 共同选点控制下”的新对照 `L0`
+
+### 9.5 pooled 结果
+
+- `L0`:
+  - `macro_f1 = 0.2860`
+  - `balanced_accuracy = 0.3501`
+  - `warning_AP = 0.1979`
+  - `unacceptable_AP = 0.0870`
+  - boundary high-confidence non-warning `= 0.5152`
+- `L60`:
+  - `macro_f1 = 0.3053`
+  - `balanced_accuracy = 0.3586`
+  - `warning_AP = 0.1795`
+  - `unacceptable_AP = 0.1011`
+  - boundary high-confidence non-warning `= 0.4848`
+- `L120`:
+  - `macro_f1 = 0.2776`
+  - `balanced_accuracy = 0.3442`
+  - `warning_AP = 0.1763`
+  - `unacceptable_AP = 0.0851`
+  - boundary high-confidence non-warning `= 0.4613`
+- `L180`:
+  - `macro_f1 = 0.2886`
+  - `balanced_accuracy = 0.3510`
+  - `warning_AP = 0.2047`
+  - `unacceptable_AP = 0.0860`
+  - boundary high-confidence non-warning `= 0.4254`
+- `L240`:
+  - `macro_f1 = 0.2812`
+  - `balanced_accuracy = 0.3379`
+  - `warning_AP = 0.1740`
+  - `unacceptable_AP = 0.0914`
+  - boundary high-confidence non-warning `= 0.4945`
+
+### 9.6 对 `L180` 的具体判断
+
+- `L180` 并不是这轮里的整体最优臂。
+- 如果看整体判别与 unacceptable 侧：
+  - `L60` 更强
+  - 它同时提高了 `macro_f1 / balanced_accuracy / unacceptable_AP`
+- 但 `L180` 也不是没有信号。
+- 它体现出的优势很集中：
+  - `warning_AP` 是五个 lag 臂里最高的
+  - boundary high-confidence non-warning 也是五个 lag 臂里最低的
+- 也就是说，`L180` 最像“边界更谨慎”的 lag 版本，而不是“整体最强”的 lag 版本。
+
+### 9.7 fold-level 信号
+
+- `L180` 相对 `L0`：
+  - `macro_f1` 更好：`3 / 5` folds
+  - `balanced_accuracy` 更好：`3 / 5` folds
+  - `warning_AP` 更好：`3 / 5` folds
+  - `unacceptable_AP` 不差于 `L0`：`2 / 5` folds
+  - boundary overconfidence 更好：`5 / 5` folds
+- 这说明：
+  - `L180` 的“边界谨慎性改善”是稳定的
+  - 但它的“整体最优”并不稳定
+
+### 9.8 当前结论
+
+- 可以支持“存在 lag sensitivity”
+- 但当前证据还不能支持“约 `3h` 已被确认”
+- 更准确的写法应是：
+  - 在冻结主线下，DCS 窗口整体后移确实会改变结果
+  - `1h` 后移更像当前任务下的整体最优方向
+  - `3h` 后移更像边界谨慎性更强的方向
+  - 因而当前观察到的是“宽范围 lag effect”，而不是“`3h` 特异最优”
+
+### 9.9 对下一步的意义
+
+- 这轮结果已经足够说明：
+  - 后续不应该再把 lag 当成可忽略因素
+- 但下一步不该立刻写成“固定采用 `3h` lag”
+- 更合理的推进顺序是：
+  1. 先把 `L60` 和 `L180` 视为两个有代表性的 lag 候选
+  2. 再进入更细的模型 / 特征工程阶段
+  3. 检查哪些特征族或哪些点位更偏向 `L60`，哪些更偏向 `L180`
+
+### 9.10 本轮产物
+
+- 配置：
+  - `configs/ordinal_cumulative_current_head_monotonic_120min_boundary_weighted_inner_thresholds_identity_dedup_global_lag.yaml`
+- 脚本：
+  - `scripts/run_ordinal_cumulative_current_head_monotonic_120min_boundary_weighted_inner_thresholds_identity_dedup_global_lag.py`
+- 摘要：
+  - `reports/monotonic_120min_boundary_weighted_inner_thresholds_identity_dedup_global_lag/global_lag_summary.md`
+- JSON：
+  - `artifacts/monotonic_120min_boundary_weighted_inner_thresholds_identity_dedup_global_lag/global_lag_summary.json`
+
+## 10. L60 vs L180 点位偏好 cleanroom：固定 L0 选点下的逐传感器消融
+
+### 10.1 本轮目的
+
+- 上一轮已经说明：
+  - `L60` 更像整体最优 lag
+  - `L180` 更像边界谨慎性更强的 lag
+- 因此本轮不再扩 lag 网格，而是直接追问：
+  - 这两个 lag 的差异，是否能下沉到点位层
+  - 哪些传感器更支持 `L60` 的整体判别
+  - 哪些传感器更支持 `L180` 的边界谨慎性
+
+### 10.2 本轮协议
+
+- 仍然固定使用上一轮 lag cleanroom 的共同样本集
+- 仍然固定使用每个 outer fold 在 `L0` 上选出的：
+  - `selected_sensors`
+  - `chosen boundary / warning weight candidate`
+- 本轮只比较两个 lag：
+  - `L60`
+  - `L180`
+- 方法：
+  - 对 fold 内已选的每个传感器做一次 leave-one-sensor-out ablation
+  - 分别观察在 `L60` 和 `L180` 下，去掉该传感器后：
+    - `macro_f1`
+    - `balanced_accuracy`
+    - `warning_AP`
+    - `unacceptable_AP`
+    - boundary high-confidence non-warning
+    的变化
+
+### 10.3 解释规则
+
+- 对某个 lag 来说：
+  - 如果去掉传感器后 `macro_f1 / balanced_accuracy` 下降，
+    - 说明这个传感器在支持该 lag 的整体判别
+  - 如果去掉传感器后 `warning_AP` 下降，
+    - 说明它在支持边界 warning 捕捉
+  - 如果去掉传感器后 boundary high-confidence non-warning 上升，
+    - 说明它在帮助抑制边界高置信硬切
+
+### 10.4 主要结果
+
+- 支持 `L60` 整体判别更明显的一批点位是：
+  - `II_CM511A_PV_CV`
+  - `TICA_C52601_PV_F_CV`
+  - `II_CM510B_PV_CV`
+  - `TI_C51003_PV_F_CV`
+  - `TI_C51101A_S_PV_CV`
+  - `TI_C51401_S_PV_CV`
+- 支持 `L180` 边界谨慎性更明显的一批点位是：
+  - `FI_C53001_PV_F_CV`
+  - `PI_C51203A_S_PV_CV`
+  - `II_CM530A_PV_CV`
+  - `FI_C51004_S_PV_CV`
+  - `TI_CM511A_PV_F_CV`
+  - `TI_C51101B_S_PV_CV`
+  - `TI_C50604_PV_F_CV`
+  - `FIC_C51801_PV_F_CV`
+
+### 10.5 一个重要现象
+
+- 这两组点位并不相同。
+- 也就是说：
+  - `L60` 的收益并不是简单来自“所有点位一起整体后移都更好”
+  - `L180` 的边界谨慎性也不是所有点位都共同支持
+- 当前更像是：
+  - 有一批点位更接近短 lag 响应
+  - 也有一批点位更接近长 lag / 慢反应
+
+### 10.6 当前判断
+
+- 这轮结果已经让“统一单一 lag”变得不再那么自然。
+- 但还不能直接跳到“按点位分层 lag 模型已经成立”。
+- 更准确的判断应是：
+  - `L60` 和 `L180` 的差异有点位层支持
+  - 因而后续值得进入“按特征族 / 按点位分层 lag”的阶段
+  - 但这仍然需要新的 cleanroom 验证，不能直接把这一轮分析当成最终建模规则
+
+### 10.7 对下一步的指向
+
+- 现在更值得做的，不是继续扩 `L300 / L360` 之类的新 lag 网格
+- 而是开一个更小、更干净的下一轮：
+  - 以当前 strongest baseline 为骨架
+  - 只对一小批 `L180` 偏好的候选点位尝试 longer-lag
+  - 其余大部分点位仍保留 `L60` 或 `L0/L60` 路线
+- 也就是说，下一步应从“单 lag cleanroom”推进到“分层 lag cleanroom”
+
+### 10.8 本轮产物
+
+- 配置：
+  - `configs/ordinal_cumulative_current_head_monotonic_120min_boundary_weighted_inner_thresholds_identity_dedup_global_lag_sensor_preference.yaml`
+- 脚本：
+  - `scripts/run_ordinal_cumulative_current_head_monotonic_120min_boundary_weighted_inner_thresholds_identity_dedup_global_lag_sensor_preference.py`
+- 摘要：
+  - `reports/monotonic_120min_boundary_weighted_inner_thresholds_identity_dedup_global_lag_sensor_preference/global_lag_sensor_preference_summary.md`
+- JSON：
+  - `artifacts/monotonic_120min_boundary_weighted_inner_thresholds_identity_dedup_global_lag_sensor_preference/global_lag_sensor_preference_summary.json`
+
+## 11. 分层 lag cleanroom：少数 L180 偏好点位走长 lag，其余点位保持 L60
+
+### 11.1 本轮目的
+
+- 上一轮已经把问题压到了点位层：
+  - `L60` 更像整体最优
+  - `L180` 更像边界谨慎性更强
+  - 而且两者不是同一批点位在起作用
+- 因此本轮正式尝试一个更具体的工作假设：
+  - 不是所有点位都用同一个 lag
+  - 只让少数 `L180` 偏好点位走长 lag
+  - 其余大部分点位仍保留 `L60`
+
+### 11.2 本轮候选组
+
+- base short lag:
+  - `L60`
+- slow lag only on selected sensors:
+  - `hybrid_l180_top3`
+    - `FI_C53001_PV_F_CV`
+    - `TI_CM511A_PV_F_CV`
+    - `TI_CM53201_PV_F_CV`
+  - `hybrid_l180_top5`
+    - 上述 `top3`
+    - `FI_C51005_S_PV_CV`
+    - `FIC_C51801_PV_F_CV`
+  - `hybrid_l180_top8`
+    - 上述 `top5`
+    - `TICA_C52601_PV_F_CV`
+    - `TI_C51202B_S_PV_CV`
+    - `FIC_C51802_PV_F_CV`
+
+### 11.3 控变量方式
+
+- 仍然复用 global lag cleanroom 的共同样本集
+- 仍然复用：
+  - 每个 outer fold 在 `L0` 上选出的 `selected_sensors`
+  - 每个 outer fold 在 `L0` 上选出的 `boundary / warning weight candidate`
+- 本轮不重新筛点
+- 本轮不改模型
+- 本轮只改：
+  - 某一小批点位到底取 `L60` 还是 `L180`
+
+### 11.4 pooled 结果
+
+- `L60`:
+  - `macro_f1 = 0.3053`
+  - `balanced_accuracy = 0.3586`
+  - `warning_AP = 0.1795`
+  - `unacceptable_AP = 0.1011`
+  - boundary high-confidence non-warning `= 0.4848`
+- `L180`:
+  - `macro_f1 = 0.2886`
+  - `balanced_accuracy = 0.3510`
+  - `warning_AP = 0.2047`
+  - `unacceptable_AP = 0.0860`
+  - boundary high-confidence non-warning `= 0.4254`
+- `hybrid_l180_top3`:
+  - `macro_f1 = 0.3033`
+  - `balanced_accuracy = 0.3683`
+  - `warning_AP = 0.1860`
+  - `unacceptable_AP = 0.0997`
+  - boundary high-confidence non-warning `= 0.4696`
+- `hybrid_l180_top5`:
+  - `macro_f1 = 0.3049`
+  - `balanced_accuracy = 0.3670`
+  - `warning_AP = 0.1902`
+  - `unacceptable_AP = 0.1025`
+  - boundary high-confidence non-warning `= 0.4378`
+- `hybrid_l180_top8`:
+  - `macro_f1 = 0.2881`
+  - `balanced_accuracy = 0.3478`
+  - `warning_AP = 0.1796`
+  - `unacceptable_AP = 0.1042`
+  - boundary high-confidence non-warning `= 0.4406`
+
+### 11.5 本轮最重要的结果
+
+- `hybrid_l180_top5` 是当前最有信号的版本。
+- 相比纯 `L60`：
+  - `macro_f1` 基本持平：
+    - `0.3053 -> 0.3049`
+  - `balanced_accuracy` 提升：
+    - `0.3586 -> 0.3670`
+  - `core_AP` 提升：
+    - `0.7302 -> 0.7368`
+  - `warning_AP` 提升：
+    - `0.1795 -> 0.1902`
+  - `unacceptable_AP` 也略升：
+    - `0.1011 -> 0.1025`
+  - boundary high-confidence non-warning 明显下降：
+    - `0.4848 -> 0.4378`
+
+### 11.6 如何理解这轮结果
+
+- 这轮第一次出现了一个很像“同时借到两边优点”的版本：
+  - 保住了 `L60` 的整体判别
+  - 又吸收了一部分 `L180` 的边界谨慎性
+- 同时它没有像纯 `L180` 那样明显牺牲 unacceptable 侧。
+- 这说明：
+  - “统一单 lag”很可能不是当前任务下的最优结构
+  - “少数慢点位走长 lag，其余点位走短 lag”开始出现真实信号
+
+### 11.7 需要保留的克制判断
+
+- 这轮还不能直接升级成新的冻结主线。
+- 原因是：
+  - `hybrid_l180_top5` 的候选点位来自上一轮分析筛选
+  - 它仍然属于 hypothesis-driven cleanroom，而不是最终稳定标准
+- 但它已经足够强，值得进入下一轮更正式的确认：
+  - 现在不该回去继续扩单 lag 网格
+  - 而应该把“分层 lag”视为新的主工作假设
+
+### 11.8 当前最合理的下一步
+
+- 下一步不建议立刻再扩更多点位到 `L180`
+- 因为 `top8` 已经说明：
+  - 长 lag 点位加得过多，会把整体性能重新拉坏
+- 更合理的是：
+  1. 先围绕 `hybrid_l180_top5` 做确认性实验
+  2. 检查这 5 个点位的工艺含义是否一致
+  3. 再决定是继续微调其中 1 到 2 个点位，还是进入更正式的分层 lag 建模
+
+### 11.9 本轮产物
+
+- 配置：
+  - `configs/ordinal_cumulative_current_head_monotonic_120min_boundary_weighted_inner_thresholds_identity_dedup_stratified_lag.yaml`
+- 脚本：
+  - `scripts/run_ordinal_cumulative_current_head_monotonic_120min_boundary_weighted_inner_thresholds_identity_dedup_stratified_lag.py`
+- 摘要：
+  - `reports/monotonic_120min_boundary_weighted_inner_thresholds_identity_dedup_stratified_lag/stratified_lag_summary.md`
+- JSON：
+  - `artifacts/monotonic_120min_boundary_weighted_inner_thresholds_identity_dedup_stratified_lag/stratified_lag_summary.json`
+
+## 12. hybrid_l180_top5 的工艺含义复核与名单敏感性分析
+
+### 12.1 先看 top5 的工艺含义
+
+- `FI_C53001_PV_F_CV`
+  - `闪蒸罐胶液进料量`
+- `TI_CM511A_PV_F_CV`
+  - `R511A搅拌温度`
+- `TI_CM53201_PV_F_CV`
+  - `V532搅拌温度`
+- `FI_C51005_S_PV_CV`
+  - `卤化工段胶液总量1`
+- `FIC_C51801_PV_F_CV`
+  - `ESBO加注量`
+
+### 12.2 对这 5 个点位的当前理解
+
+- 它们并不是完全同一类变量。
+- 但有一个共同特征开始变清楚：
+  - 这批点位更像“物料通过 / 混合 / 添加 / 停留时间”相关信号
+  - 而不是单纯的瞬时快变量
+- 换句话说，它们确实有理由比一般点位更容易表现出较长 lag 效应。
+
+### 12.3 top5 名单敏感性实验
+
+- 为了确认 `hybrid_l180_top5` 不是偶然凑出来的组合，本轮又做了一组 leave-one-from-top5 的确认性实验。
+- 比较的候选包括：
+  - `hybrid_l180_top5`
+  - `drop_FI_C53001`
+  - `drop_TI_CM511A`
+  - `drop_TI_CM53201`
+  - `drop_FI_C51005`
+  - `drop_FIC_C51801`
+
+### 12.4 敏感性结果
+
+- `hybrid_l180_top5` 仍然是一个很强的平衡方案：
+  - `macro_f1 = 0.3049`
+  - `balanced_accuracy = 0.3670`
+  - `warning_AP = 0.1902`
+  - `unacceptable_AP = 0.1025`
+  - boundary high-confidence non-warning `= 0.4378`
+
+- 但如果目标偏向“整体最优”，当前更强的是：
+  - `hybrid_l180_drop_FI_C53001`
+  - 相对 `L60`：
+    - `macro_f1 +0.0072`
+    - `balanced_accuracy +0.0107`
+    - `warning_AP +0.0103`
+    - `unacceptable_AP +0.0081`
+  - 代价是边界高置信硬切改善幅度没有 `top5` 那么大
+
+- 如果目标偏向“边界收益更稳”，当前更像最佳折中的是：
+  - `hybrid_l180_drop_TI_CM53201`
+  - 相对 `L60`：
+    - `balanced_accuracy +0.0041`
+    - `core_AP +0.0095`
+    - `warning_AP +0.0129`
+    - boundary high-confidence non-warning `-0.0401`
+    - `unacceptable_AP` 仅小幅 `-0.0005`
+
+- 相反，`drop_FIC_C51801` 明显把整体与边界一起拉弱，说明：
+  - `FIC_C51801_PV_F_CV`
+  - 在当前分层 lag 方案里更像是保留项，而不是优先删除项
+
+### 12.5 这轮最重要的判断
+
+- `hybrid_l180_top5` 不是最终名单。
+- 当前更合理的理解是：
+  - 这 5 个点位里，至少有 `FI_C53001_PV_F_CV` 和 `TI_CM53201_PV_F_CV` 还值得继续裁剪验证
+  - 而 `FIC_C51801_PV_F_CV` 更像当前应优先保留的慢点位
+- 也就是说，分层 lag 的方向已经得到进一步支持；
+  - 但下一步应该从 `top5` 继续往 `top4` 精修，而不是再扩回更大的慢点位集合
+
+### 12.6 当前最合理的下一步
+
+- 下一步建议不再继续做宽搜索。
+- 更合适的是围绕两个版本做确认性实验：
+  1. `hybrid_l180_drop_FI_C53001`
+     - 偏整体最优
+  2. `hybrid_l180_drop_TI_CM53201`
+     - 偏边界收益与整体折中
+- 然后再决定：
+  - 是把分层 lag 主线朝“整体更强”推进
+  - 还是朝“边界更稳”推进
+
+### 12.7 本轮产物
+
+- 配置：
+  - `configs/ordinal_cumulative_current_head_monotonic_120min_boundary_weighted_inner_thresholds_identity_dedup_stratified_lag_top5_sensitivity.yaml`
+- 脚本：
+  - 继续复用
+  - `scripts/run_ordinal_cumulative_current_head_monotonic_120min_boundary_weighted_inner_thresholds_identity_dedup_stratified_lag.py`
+- 摘要：
+  - `reports/monotonic_120min_boundary_weighted_inner_thresholds_identity_dedup_stratified_lag_top5_sensitivity/stratified_lag_summary.md`
+- JSON：
+  - `artifacts/monotonic_120min_boundary_weighted_inner_thresholds_identity_dedup_stratified_lag_top5_sensitivity/stratified_lag_summary.json`
+
+## 13. 最后一轮确认：两条 top4 分层 lag 候选的正面复核
+
+### 13.1 本轮目的
+
+- 上一轮已经把分层 lag 主线收敛成两个候选：
+  1. `hybrid_l180_drop_FI_C53001`
+     - 偏整体最优
+  2. `hybrid_l180_drop_TI_CM53201`
+     - 偏边界收益与整体折中
+- 本轮不再扩其他名单
+- 只做这两条候选和 `L60 / L180` 的最终同口径确认
+
+### 13.2 pooled 结果
+
+- `L60`:
+  - `macro_f1 = 0.3053`
+  - `balanced_accuracy = 0.3586`
+  - `warning_AP = 0.1795`
+  - `unacceptable_AP = 0.1011`
+  - boundary high-confidence non-warning `= 0.4848`
+- `L180`:
+  - `macro_f1 = 0.2886`
+  - `balanced_accuracy = 0.3510`
+  - `warning_AP = 0.2047`
+  - `unacceptable_AP = 0.0860`
+  - boundary high-confidence non-warning `= 0.4254`
+- `hybrid_l180_drop_FI_C53001`:
+  - `macro_f1 = 0.3125`
+  - `balanced_accuracy = 0.3693`
+  - `warning_AP = 0.1897`
+  - `unacceptable_AP = 0.1092`
+  - boundary high-confidence non-warning `= 0.4669`
+- `hybrid_l180_drop_TI_CM53201`:
+  - `macro_f1 = 0.3024`
+  - `balanced_accuracy = 0.3627`
+  - `warning_AP = 0.1924`
+  - `unacceptable_AP = 0.1005`
+  - boundary high-confidence non-warning `= 0.4448`
+
+### 13.3 本轮确认结论
+
+- 两条 `top4` 候选都比纯 `L180` 更合理。
+- 而且两条都对纯 `L60` 给出了正向增益，但增益方向不同：
+
+- `hybrid_l180_drop_FI_C53001`
+  - 是当前“整体最强”的版本
+  - 相对 `L60`：
+    - `macro_f1 +0.0072`
+    - `balanced_accuracy +0.0107`
+    - `warning_AP +0.0103`
+    - `unacceptable_AP +0.0081`
+  - 但边界高置信硬切只改善了一小截：
+    - `0.4848 -> 0.4669`
+
+- `hybrid_l180_drop_TI_CM53201`
+  - 是当前“边界与整体最均衡”的版本
+  - 相对 `L60`：
+    - `balanced_accuracy +0.0041`
+    - `core_AP +0.0095`
+    - `warning_AP +0.0129`
+    - boundary high-confidence non-warning `0.4848 -> 0.4448`
+    - `unacceptable_AP` 基本持平，仅 `-0.0005`
+  - 代价是 `macro_f1` 略低于 `L60`
+
+### 13.4 当前最清楚的判断
+
+- 分层 lag 这条线已经被确认有价值。
+- 而且现在已经不只是“方向上有信号”，而是：
+  - 明确出现了比纯 `L60` 更好的混合版本
+- 当前可以把分层 lag 主线收成两个口径：
+  1. 如果偏向总体判别最强：
+     - `hybrid_l180_drop_FI_C53001`
+  2. 如果偏向边界更稳、同时尽量不伤 unacceptable：
+     - `hybrid_l180_drop_TI_CM53201`
+
+### 13.5 当前建议
+
+- 如果要继续往现场或后续建模推进，我建议优先把：
+  - `hybrid_l180_drop_TI_CM53201`
+  作为下一步主工作版本
+- 原因是它更符合这一路实验的原始目标：
+  - 不只是追求整体分数
+  - 还要更诚实地处理边界模糊
+- 同时它没有像纯 `L180` 那样明显牺牲 unacceptable 侧。
+
+### 13.6 本轮产物
+
+- 配置：
+  - `configs/ordinal_cumulative_current_head_monotonic_120min_boundary_weighted_inner_thresholds_identity_dedup_stratified_lag_final_confirmation.yaml`
+- 脚本：
+  - 继续复用
+  - `scripts/run_ordinal_cumulative_current_head_monotonic_120min_boundary_weighted_inner_thresholds_identity_dedup_stratified_lag.py`
+- 摘要：
+  - `reports/monotonic_120min_boundary_weighted_inner_thresholds_identity_dedup_stratified_lag_final_confirmation/stratified_lag_summary.md`
+- JSON：
+  - `artifacts/monotonic_120min_boundary_weighted_inner_thresholds_identity_dedup_stratified_lag_final_confirmation/stratified_lag_summary.json`

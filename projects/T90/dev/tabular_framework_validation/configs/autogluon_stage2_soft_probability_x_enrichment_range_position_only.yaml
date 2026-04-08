@@ -1,0 +1,66 @@
+phase: stage2_soft_out_of_spec_probability_x_enrichment_range_position_only
+
+data_source_statement:
+  source_condition: uncleaned_source
+  note: >
+    This focused rerun keeps the validated soft target design fixed and only
+    rechecks the current best X-side enrichment variant for direct comparison.
+
+paths:
+  lims_path: ../../../data/t90-溴丁橡胶.xlsx
+  dcs_main_path: ../../../data/merge_data.csv
+  dcs_supplemental_path: ../../../data/merge_data_otr.csv
+  artifact_dir: ../artifacts/soft_probability_range_position_recheck
+  report_dir: ../reports/soft_probability_range_position_recheck
+
+target_spec:
+  center: 8.45
+  tolerance: 0.25
+
+label_fuzziness:
+  target_name: target_soft_out_of_spec_probability
+  boundary_softness: 0.08
+  rule: logistic_boundary_membership
+
+snapshot:
+  lookback_minutes: 120
+  min_points_per_window: 5
+  stats:
+    - mean
+    - std
+    - min
+    - max
+    - last
+    - delta
+    - range
+    - slope
+    - valid_ratio
+
+cleaning:
+  drop_feature_missing_ratio_above: 0.98
+  drop_high_corr_threshold: 0.9995
+
+selection:
+  soft_probability_top_k: 220
+
+validation:
+  n_splits: 5
+
+tasks:
+  high_risk:
+    enabled: false
+    threshold: 8.7
+  centered_desirability:
+    enabled: false
+
+autogluon:
+  presets: medium_quality_faster_train
+  time_limit_seconds: 60
+  verbosity: 1
+  hyperparameters:
+    GBM: {}
+    XGB: {}
+
+x_enrichment:
+  variants:
+    - range_position

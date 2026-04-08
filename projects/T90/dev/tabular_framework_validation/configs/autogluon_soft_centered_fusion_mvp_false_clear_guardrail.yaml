@@ -1,0 +1,42 @@
+phase: soft_centered_fusion_mvp_false_clear_guardrail
+
+paths:
+  soft_config_path: ./autogluon_stage2_soft_probability_x_enrichment_range_position_only.yaml
+  centered_config_path: ./autogluon_centered_desirability_outspec_eval.yaml
+  artifact_dir: ../artifacts/soft_centered_fusion_mvp_false_clear_guardrail
+  report_dir: ../reports/soft_centered_fusion_mvp_false_clear_guardrail
+
+validation:
+  n_splits: 5
+
+soft_head:
+  variant_name: range_position
+  top_k: 220
+
+fusion:
+  calibration_fraction: 0.2
+  min_calibration_samples: 120
+  min_base_train_samples: 360
+  fixed_weight_candidates:
+    - 0.2
+    - 0.35
+    - 0.5
+    - 0.65
+    - 0.8
+  tau_low: 0.2
+  tau_high: 0.6
+  guardrail:
+    max_false_clear_rate: 0.02
+    soft_ceiling_candidates:
+      - 0.02
+      - 0.05
+      - 0.1
+      - 0.15
+      - 0.2
+    center_ceiling_candidates:
+      - 0.05
+      - 0.1
+      - 0.15
+      - 0.2
+      - 0.3
+      - 0.4

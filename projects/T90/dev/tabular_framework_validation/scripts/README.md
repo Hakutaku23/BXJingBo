@@ -23,6 +23,20 @@ validation workspace.
   `S7` final controlled re-selection that consolidates validated packages from `S1` to `S6` and locks one final recipe for `centered_desirability` and `five_bin`.
 - `make_stage7_visual_summary.py`
   Builds an easy-to-read held-out dashboard for the final `S7` solution using the saved summary JSON, without retraining any model.
+- `run_autogluon_centered_segmented_window_search.py`
+  Centered-only controlled search that replaces the current whole-window snapshot with segmented window statistics and scans small segment sizes against the validated centered reference line.
+- `run_autogluon_centered_causal_path_search.py`
+  Centered-only controlled search that replaces whole-window summary statistics with lower-compression causal path features and tests whether preserving ordered path points improves centered_desirability.
+- `run_autogluon_centered_model_family_recovery.py`
+  Controlled recovery check for previously omitted AutoGluon model families on the current best centered_desirability recipe, comparing the restricted `GBM + XGB` pool against broader CPU-only model pools.
+- `run_autogluon_soft_probability_weak_compression_search.py`
+  Controlled weak-compression search for the soft target branch, comparing the current whole-window range-position reference against segmented-window and causal-path representations.
+- `run_autogluon_soft_probability_structured_shape_search.py`
+  Controlled structured-shape search for the soft target branch, augmenting the current whole-window range-position reference with quantile-profile and phase-shape feature families.
+- `run_autogluon_centered_same_fe_as_soft.py`
+  Controlled same-X comparison that re-runs centered_desirability using the exact whole-window range-position feature recipe currently validated as best on the soft target branch.
+- `make_same_x_branch_comparison_visuals.py`
+  Recomputes held-out predictions for centered_desirability and soft target under the same whole-window range-position X recipe, then builds a communication-ready dashboard showing relative gain and prediction-vs-label gaps.
 - `run_autogluon_stage2_feature_engineering.py`
   Shared Stage 2 engineered snapshot experiment for mixed `high_risk` and `centered_desirability`.
 - `run_autogluon_stage2_desirability.py`

@@ -1,0 +1,93 @@
+phase: centered_same_fe_as_soft
+
+data_source_statement:
+  source_condition: uncleaned_source
+  note: >
+    This controlled experiment reuses the validated soft-target best X recipe
+    for centered_desirability, so the two branches can be compared under the
+    same feature engineering method.
+
+paths:
+  lims_path: ../../../data/t90-溴丁橡胶.xlsx
+  dcs_main_path: ../../../data/merge_data.csv
+  dcs_supplemental_path: ../../../data/merge_data_otr.csv
+  artifact_dir: ../artifacts
+  report_dir: ../reports
+
+target_spec:
+  center: 8.45
+  tolerance: 0.25
+
+label_fuzziness:
+  target_name: target_soft_out_of_spec_probability
+  boundary_softness: 0.08
+  rule: logistic_boundary_membership
+
+snapshot:
+  lookback_minutes: 120
+  min_points_per_window: 5
+  min_points_per_segment: 3
+  stats:
+    - mean
+    - std
+    - min
+    - max
+    - last
+    - delta
+    - range
+    - slope
+    - valid_ratio
+  current_ref_stats:
+    - mean
+    - std
+    - min
+    - max
+    - last
+    - delta
+    - range
+    - slope
+    - valid_ratio
+  segmented_stats:
+    - mean
+    - std
+    - min
+    - max
+    - last
+    - delta
+  segmented_lengths:
+    - 10
+    - 15
+    - 30
+  path_steps:
+    - 2
+    - 5
+    - 10
+
+cleaning:
+  drop_feature_missing_ratio_above: 0.98
+  drop_high_corr_threshold: 0.9995
+
+preclean:
+  max_missing_ratio: 0.995
+  near_constant_unique_threshold: 1
+
+selection:
+  top_k: 220
+
+validation:
+  n_splits: 5
+
+tasks:
+  high_risk:
+    enabled: false
+    threshold: 8.7
+  centered_desirability:
+    enabled: false
+
+autogluon:
+  presets: medium_quality_faster_train
+  time_limit_seconds: 60
+  verbosity: 1
+  hyperparameters:
+    GBM: {}
+    XGB: {}

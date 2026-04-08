@@ -1,0 +1,108 @@
+phase: centered_desirability_outspec_eval
+
+data_source_statement:
+  source_condition: uncleaned_source
+  note: >
+    This evaluation reuses the already selected best centered_desirability
+    package from Stage 7 and only adds hard out-of-spec AP/AUC diagnostics.
+
+paths:
+  lims_path: ../../../data/t90-溴丁橡胶.xlsx
+  dcs_main_path: ../../../data/merge_data.csv
+  dcs_supplemental_path: ../../../data/merge_data_otr.csv
+  artifact_dir: ../artifacts/centered_desirability_outspec_eval
+  report_dir: ../reports/centered_desirability_outspec_eval
+  stage1_summary_path: ../artifacts/stage1_lag_scale_summary.json
+  stage3_summary_path: ../artifacts/stage3_regime_summary.json
+  stage4_summary_path: ../artifacts/stage4_interaction_summary.json
+  stage5_summary_path: ../artifacts/stage5_quality_summary.json
+  stage6_summary_path: ../artifacts/stage6_centered_quality_summary.json
+  stage7_summary_path: ../artifacts/stage7_final_summary.json
+
+target_spec:
+  center: 8.45
+  tolerance: 0.25
+
+snapshot:
+  min_points_per_window: 5
+  stats:
+    - mean
+    - std
+    - min
+    - max
+    - last
+    - range
+    - delta
+
+validation:
+  n_splits: 5
+
+tasks:
+  centered_desirability:
+    enabled: true
+    top_k_candidates:
+      - 400
+  five_bin:
+    enabled: false
+    bins:
+      - -.inf
+      - 8.0
+      - 8.2
+      - 8.7
+      - 8.9
+      - .inf
+
+preclean:
+  max_missing_ratio: 0.98
+  near_constant_unique_threshold: 1
+  duplicate_hash_based: true
+
+quality_feature_map:
+  missing_freeze:
+    - missing_ratio
+    - valid_count
+    - freeze_length
+    - freeze_ratio
+  jump_irregularity:
+    - max_jump
+    - time_since_last_jump
+    - update_irregularity
+  combined_quality:
+    - missing_ratio
+    - valid_count
+    - freeze_length
+    - freeze_ratio
+    - max_jump
+    - time_since_last_jump
+    - update_irregularity
+
+centered_quality_feature_map:
+  center_stability:
+    - mean_abs_z
+    - center_band_ratio
+    - center_hold_ratio
+  center_direction:
+    - last_z
+    - late_shift_z
+    - tail_bias
+    - reversion_score
+  centered_quality_full:
+    - mean_abs_z
+    - center_band_ratio
+    - center_hold_ratio
+    - last_z
+    - late_shift_z
+    - tail_bias
+    - reversion_score
+
+autogluon:
+  presets: medium_quality_faster_train
+  time_limit_seconds: 45
+  verbosity: 1
+  hyperparameters:
+    GBM: {}
+    XGB: {}
+
+baseline:
+  regression_model: ridge
+  multiclass_model: multinomial_logistic_regression

@@ -21,6 +21,8 @@ validation workspace.
   `S6` centered-quality validation that adds centered-process features only for `centered_desirability` on top of the best validated centered input package from `S5`.
 - `run_autogluon_stage7_final_selection.py`
   `S7` final controlled re-selection that consolidates validated packages from `S1` to `S6` and locks one final recipe for `centered_desirability` and `five_bin`.
+- `make_stage7_visual_summary.py`
+  Builds an easy-to-read held-out dashboard for the final `S7` solution using the saved summary JSON, without retraining any model.
 - `run_autogluon_stage2_feature_engineering.py`
   Shared Stage 2 engineered snapshot experiment for mixed `high_risk` and `centered_desirability`.
 - `run_autogluon_stage2_desirability.py`

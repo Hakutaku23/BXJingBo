@@ -454,3 +454,136 @@
 - `centered_desirability` 回归本身支持继续看长 lag
 - 但如果目标是 `stage6 centered-quality` 当前实现的整体最优底座，仍应保留 `lag120_win60`
 - `lag240_win120` 和 `lag480_win60` 更适合作为 centered-only 旁路线索，而不是立即替换 `stage6` 主底座
+
+## 11. 原因分析：为什么长 lag 对 centered-only 有利，却没有迁移成更好的 Stage 6 底座
+
+当前我对这个现象的判断是：
+
+> 长 lag 并不是“没用”，而是它的增益更偏向 `centered_desirability` 主回归本身；一旦进入 `stage6 centered-quality` 这一层，原本围绕 `lag120_win60` 验证出来的 interaction / quality / centered 专用特征协同关系会被部分打散。
+
+可以拆成四点来看。
+
+### 11.1 长 lag 先把底座拉弱了，centered package 只是在做补救
+
+最直观的证据是三套 `stage6` 底座的 `autogluon_current_mean_mae`：
+
+- 原始 `lag120_win60` 底座：`0.301895`
+- `lag240_win120` 底座：`0.307060`
+- `lag480_win60` 底座：`0.306817`
+
+也就是说，在还没加 centered-quality 包之前，长 lag 底座本身已经比原始 `stage6` 底座更弱了。
+
+之后 centered-quality 包确实能把它们往回拉：
+
+- `lag240_win120 + center_stability`: `delta_mae = -0.002409`
+- `lag240_win120 + centered_quality_full`: `delta_mae = -0.002391`
+- `lag480_win60 + center_direction`: `delta_mae = -0.003448`
+
+这说明 centered-quality 特征层对长 lag 仍然有帮助，但它们做的是“补救”，不是“把更弱底座反超成新的最优底座”。
+
+### 11.2 Stage 6 的 centered 特征语义，本质上是“窗口内相对中心性”，它更依赖被选中的窗口本身是合适的
+
+`stage6` 的 centered-quality 特征并不是直接预测 `8.45`，而是在每个窗口内部先标准化，再提取：
+
+- `mean_abs_z`
+- `center_band_ratio`
+- `center_hold_ratio`
+- `last_z`
+- `late_shift_z`
+- `tail_bias`
+- `reversion_score`
+
+实现位置见：
+
+- [run_autogluon_stage6_centered_quality.py](D:/PSE/博兴京博/BXJingBo/projects/T90/dev/tabular_framework_validation/scripts/run_autogluon_stage6_centered_quality.py#L81)
+- [run_autogluon_stage6_centered_quality.py](D:/PSE/博兴京博/BXJingBo/projects/T90/dev/tabular_framework_validation/scripts/run_autogluon_stage6_centered_quality.py#L129)
+
+这类特征的前提是：
+
+> 当前取到的那个时间窗，本身就应该与最终质量中心性有较直接的关系。
+
+对 `lag120_win60` 来说，这个前提在历史 `stage1-6` 里已经被逐层验证过；但当窗口整体后移到 `240min` 甚至 `480min` 后，`last_z / late_shift_z / reversion_score` 描述的就更像“更早一段历史过程的相对位置”，而不一定还是“接近样品形成时刻的中心性线索”。  
+所以 centered-only 回归还能从长 lag 的宏观关联里受益，但 centered-quality 这类“窗口内形态语义”未必还能同样成立。
+
+### 11.3 长 lag 的收益更不稳定，集中在少数折段，而不是像原始底座那样更均衡
+
+原始 `stage6 + center_direction` 的最优版本，5 折里是“前两折略亏、后三折持续回补”：
+
+- fold 1: `+0.002181`
+- fold 2: `+0.001515`
+- fold 3: `-0.006803`
+- fold 4: `-0.002089`
+- fold 5: `-0.001367`
+
+这是一个比较均衡的结构。
+
+而长 lag 底座下的 centered package 更像“局部强、但跨折不稳”：
+
+`lag240_win120 + center_stability`
+- fold 1: `-0.003907`
+- fold 2: `-0.009265`
+- fold 3: `-0.004524`
+- fold 4: `+0.000018`
+- fold 5: `+0.005634`
+
+`lag480_win60 + center_direction`
+- fold 1: `-0.004612`
+- fold 2: `-0.003737`
+- fold 3: `+0.003729`
+- fold 4: `-0.007828`
+- fold 5: `-0.004793`
+
+可以看到，长 lag 的改善更依赖具体折段；尤其 `lag240_win120` 在 fold 5 明显回吐，`lag480_win60` 在 fold 3 明显回吐。  
+这说明长 lag 更像“特定工况下的强信号”，还没有形成稳定底座。
+
+### 11.4 特征重要性显示：长 lag 底座更容易被少数强 current 特征主导，centered 特征并没有形成像原始底座那样的稳定协同
+
+原始最优 `stage6` 的 feature importance 更像一种平衡结构：
+
+- current lag 特征
+- quality 特征
+- centered directional 特征
+
+同时都能排进前列。例子见：
+
+- [stage6_centered_quality_feature_importance_full_center_direction.csv](D:/PSE/博兴京博/BXJingBo/projects/T90/dev/tabular_framework_validation/artifacts/stage6_centered_quality_feature_importance_full_center_direction.csv)
+
+而在 `lag480_win60 + center_direction` 里，最重要的单个特征出现了明显“过强主导”：
+
+- `TI_C54002_PV_F_CV__lag480_win60_last`
+  - importance `0.025619`
+
+它远高于后面其他特征，见：
+
+- [stage6_centered_quality_feature_importance_full_center_direction.csv](D:/PSE/博兴京博/BXJingBo/projects/T90/dev/tabular_framework_validation/artifacts/stage6_centered_quality_lag480_win60/stage6_centered_quality_feature_importance_full_center_direction.csv)
+
+这通常意味着：
+
+- 模型抓到了一个强相关长 lag 信号
+- 但整体结构更容易被少数 current 特征牵着走
+- centered 专用特征是在做二级修正，而不是形成稳定的主导协同
+
+`lag240_win120` 的 feature importance 则呈现另一种模式：
+
+- centered 特征能进入前排
+- 但当前 top features 仍主要是 lag240 的 current snapshot 与 quality 特征
+
+对应文件：
+
+- [stage6_centered_quality_feature_importance_full_center_stability.csv](D:/PSE/博兴京博/BXJingBo/projects/T90/dev/tabular_framework_validation/artifacts/stage6_centered_quality_lag240_win120/stage6_centered_quality_feature_importance_full_center_stability.csv)
+- [stage6_centered_quality_feature_importance_full_centered_quality_full.csv](D:/PSE/博兴京博/BXJingBo/projects/T90/dev/tabular_framework_validation/artifacts/stage6_centered_quality_lag240_win120/stage6_centered_quality_feature_importance_full_centered_quality_full.csv)
+
+这进一步支持了前面的判断：
+
+> 长 lag 底座下，centered-quality 仍有辅助价值，但还没有建立起比原始 `lag120_win60` 更稳的整体协同结构。
+
+## 12. 当前最稳妥的结论
+
+现在可以把这条线收紧成一句话：
+
+> 长 lag 更像是 `centered_desirability` 主回归的一条有效旁路，而不是当前 `stage6 centered-quality` 的新主底座。
+
+因此后续更合适的工作方向不是继续盲目扩 lag，而是二选一：
+
+1. 保留 `lag120_win60` 作为 `stage6` 主底座，继续做 centered-quality 专用特征精修。
+2. 把 `lag240_win120 / lag480_win60` 留在 centered-only 路线，单独研究它们为何对 centered 回归更敏感，而不要强行带入 `stage6` 主线。

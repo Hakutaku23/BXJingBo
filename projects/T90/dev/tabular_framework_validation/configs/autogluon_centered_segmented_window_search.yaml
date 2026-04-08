@@ -1,0 +1,90 @@
+phase: centered_segmented_window_search
+
+data_source_statement:
+  source_condition: uncleaned_source
+  note: >
+    The starting source is still the uncleaned source dataset. This experiment
+    keeps the centered_desirability line only, fixes the currently best total
+    causal window, and tests whether segmented window statistics can beat the
+    whole-window summary representation.
+
+paths:
+  lims_path: ../../../data/t90-溴丁橡胶.xlsx
+  dcs_main_path: ../../../data/merge_data.csv
+  dcs_supplemental_path: ../../../data/merge_data_otr.csv
+  artifact_dir: ../artifacts
+  report_dir: ../reports
+
+target_spec:
+  center: 8.45
+  tolerance: 0.25
+
+snapshot:
+  lag_minutes: 120
+  total_window_minutes: 60
+  min_points_per_window: 5
+  stats:
+    - mean
+    - std
+    - min
+    - max
+    - last
+    - range
+    - delta
+
+segmentation:
+  segment_minutes_candidates:
+    - 5
+    - 10
+    - 12
+    - 15
+    - 20
+    - 30
+  min_points_per_segment: 3
+
+packages:
+  interaction_package: flow_balance
+  quality_features:
+    - missing_ratio
+    - valid_count
+    - freeze_length
+    - freeze_ratio
+    - max_jump
+    - time_since_last_jump
+    - update_irregularity
+
+validation:
+  n_splits: 5
+
+tasks:
+  centered_desirability:
+    enabled: true
+  five_bin:
+    enabled: false
+    bins:
+      - -.inf
+      - 8.0
+      - 8.2
+      - 8.7
+      - 8.9
+      - .inf
+
+task:
+  name: centered_desirability
+  label: target_centered_desirability
+  top_k: 400
+
+preclean:
+  max_missing_ratio: 0.98
+  near_constant_unique_threshold: 1
+
+autogluon:
+  presets: medium_quality_faster_train
+  time_limit_seconds: 35
+  verbosity: 1
+  hyperparameters:
+    GBM: {}
+    XGB: {}
+
+baseline:
+  regression_model: ridge

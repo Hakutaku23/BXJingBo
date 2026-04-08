@@ -94,11 +94,12 @@ projects/**/support/features/
 projects/**/support/targets/
 projects/**/support/evaluation/
 projects/**/plans/
-projects/**/reports/
+projects/**/reports/*
 
 # Keep example data under version control
 !projects/*/data_example/
 !projects/*/data_example/**
+!projects/T90/dev/tabular_framework_validation/reports/Experimental_Procedure_zh.md
 
 # =========================
 # Cython / compiled extension artifacts

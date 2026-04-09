@@ -35,6 +35,8 @@ validation workspace.
   Controlled structured-shape search for the soft target branch, augmenting the current whole-window range-position reference with quantile-profile and phase-shape feature families.
 - `run_autogluon_centered_same_fe_as_soft.py`
   Controlled same-X comparison that re-runs centered_desirability using the exact whole-window range-position feature recipe currently validated as best on the soft target branch.
+- `run_autogluon_centered_label_revised_eval.py`
+  Centered-only revised-label experiment that compares `point / uncertain / gaussian` label families under the current best centered X-side recipe, first via parameter ablation and then via CQDI-based offline evaluation.
 - `make_same_x_branch_comparison_visuals.py`
   Recomputes held-out predictions for centered_desirability and soft target under the same whole-window range-position X recipe, then builds a communication-ready dashboard showing relative gain and prediction-vs-label gaps.
 - `run_autogluon_stage2_feature_engineering.py`

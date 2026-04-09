@@ -1,0 +1,130 @@
+phase: soft_target_radi_label_calibration_round5
+
+data_source_statement:
+  source_condition: uncleaned_source
+  note: >
+    Round 5 RADI-oriented label calibration. This round freezes the strongest
+    soft-target X-side backbone and only adjusts the soft-target label mapping.
+
+paths:
+  lims_path: ../../../data/t90-溴丁橡胶.xlsx
+  dcs_main_path: ../../../data/merge_data.csv
+  dcs_supplemental_path: ../../../data/merge_data_otr.csv
+  artifact_dir: ../artifacts/soft_target_radi_label_calibration_round5
+  report_dir: ../reports/soft_target_radi_label_calibration_round5
+  round3_summary_path: ../artifacts/soft_target_flow_balance_pair_ablation_round3/soft_target_flow_balance_pair_ablation_round3_summary.json
+  stage1_summary_path: ../artifacts/stage1_lag_scale_summary.json
+  stage3_summary_path: ../artifacts/stage3_regime_summary.json
+  stage4_summary_path: ../artifacts/stage4_interaction_summary.json
+  stage5_summary_path: ../artifacts/stage5_quality_summary.json
+  stage6_summary_path: ../artifacts/stage6_centered_quality_summary.json
+  stage7_summary_path: ../artifacts/stage7_final_summary.json
+
+target_spec:
+  center: 8.45
+  tolerance: 0.25
+
+label_fuzziness:
+  target_name: target_soft_out_of_spec_probability
+  boundary_softness: 0.08
+  rule: logistic_boundary_membership
+
+snapshot:
+  min_points_per_window: 5
+  stats:
+    - mean
+    - std
+    - min
+    - max
+    - last
+    - range
+    - delta
+    - slope
+    - valid_ratio
+
+tasks:
+  high_risk:
+    enabled: false
+  centered_desirability:
+    enabled: true
+  five_bin:
+    enabled: true
+    bins:
+      - -.inf
+      - 8.0
+      - 8.2
+      - 8.7
+      - 8.9
+      - .inf
+
+validation:
+  n_splits: 5
+
+selection:
+  shared_top_k: 220
+
+preclean:
+  max_missing_ratio: 0.98
+  near_constant_unique_threshold: 1
+
+full_quality_features:
+  - missing_ratio
+  - valid_count
+  - freeze_length
+  - freeze_ratio
+  - max_jump
+  - time_since_last_jump
+  - update_irregularity
+
+label_variants:
+  logistic_s0p03:
+    rule: logistic_boundary_membership
+    boundary_softness: 0.03
+  logistic_s0p05:
+    rule: logistic_boundary_membership
+    boundary_softness: 0.05
+  logistic_s0p08:
+    rule: logistic_boundary_membership
+    boundary_softness: 0.08
+  tanh_s0p05:
+    rule: tanh_boundary_membership
+    boundary_softness: 0.05
+  smoothstep_s0p05:
+    rule: smoothstep_boundary_band
+    boundary_softness: 0.05
+
+measurement_error_scenarios:
+  - 0.10
+  - 0.15
+  - 0.20
+
+radi:
+  inner_n_splits: 3
+  engineering_baseline_variant: full_all_pairs
+  ap_floor_ratio: 0.95
+  spec_low: 8.20
+  spec_high: 8.70
+  clear_threshold_grid:
+    - 0.10
+    - 0.15
+    - 0.20
+    - 0.25
+    - 0.30
+    - 0.35
+    - 0.40
+  alert_threshold_grid:
+    - 0.60
+    - 0.65
+    - 0.70
+    - 0.75
+    - 0.80
+    - 0.85
+    - 0.90
+
+autogluon:
+  presets: medium_quality_faster_train
+  time_limit_seconds: 60
+  verbosity: 1
+  hyperparameters:
+    GBM: {}
+    XGB: {}

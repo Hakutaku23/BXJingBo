@@ -1,4 +1,4 @@
-# Tabular Framework Validation 实验记录
+﻿# Tabular Framework Validation 实验记录
 
 ## 0. 记录规则
 
@@ -1363,3 +1363,82 @@
   - 在当前 soft target 任务上，结构化形状特征相比之前验证过的弱压缩分段/路径表示依然没有打赢当前最优基线。
   - 当前 soft target 主线继续保持：`whole_window_range_position`
   - 这说明 soft target 当前的瓶颈，至少暂时不只是“整窗统计压缩过多”这一项。
+## 2026-04-09 - centered_desirability 标签修订对照实验
+
+- 目标：
+  - 按 `projects/T90/centered_desirability_label_revised_spec.md` 对当前 centered 分支补做三种标签方法的同条件对照。
+  - 固定当前最优 centered `X` 配方，只比较 `point / uncertain / gaussian` 三种 `y` 构造方法。
+  - 先对新增两种方法做参数消融，再按 `projects/T90/cqdi_radi_offline_evaluation_spec.md` 中的 `CQDI` 口径做离线评估。
+- 目标线：
+  - `projects/T90/dev/tabular_framework_validation/`
+- 固定的 X 侧方案：
+  - centered 当前最优 `X` 配方沿用 `S7` 结果，不重新搜索窗口或特征包。
+  - 具体为：`lag120_win60 + flow_balance + combined_quality`
+  - `top_k = 400`
+  - 模型池：`GBM + XGB`
+  - 外层切分：`TimeSeriesSplit(n_splits=5)`
+  - 内层阈值搜索：`TimeSeriesSplit(n_splits=3)`
+- 标签方法定义：
+  - `point`
+    - 当前点式 centered desirability 线性方法
+  - `uncertain`
+    - 误差感知 centered desirability 线性方法
+    - 消融网格：`err_half_width ∈ {0.10, 0.15, 0.20}`
+    - `integration_points = 21`
+  - `gaussian`
+    - 高斯核 centered desirability 方法
+    - 消融网格：`sigma ∈ {0.116, 0.139, 0.212}`
+- 补充说明：
+  - 本轮正式将 `CQDI` 的 `ap_floor` 对齐到规范推荐口径：
+    - `ap_floor = 当前 centered 工程基线 hard_out_ap_diagnostic × 0.95`
+  - 使用的工程基线来自：
+    - `centered_desirability_outspec_eval_summary.json`
+    - `autogluon_mean_hard_out_ap_diagnostic = 0.28027`
+    - 因此本轮 `ap_floor ≈ 0.26626`
+  - 运行过程中 `conda run` 仍会出现控制台编码问题，但实验产物已完整落盘，不影响结果有效性。
+- 新增脚本与配置：
+  - `configs/autogluon_centered_label_revised_eval.yaml`
+  - `scripts/run_autogluon_centered_label_revised_eval.py`
+- 结果文件：
+  - `artifacts/centered_label_revised_eval/centered_label_revised_ablation_results.csv`
+  - `artifacts/centered_label_revised_eval/centered_label_revised_ablation_summary.json`
+  - `artifacts/centered_label_revised_eval/offline_eval_scored_rows.csv`
+  - `artifacts/centered_label_revised_eval/offline_centered_threshold_candidates.csv`
+  - `artifacts/centered_label_revised_eval/offline_centered_fold_summary.csv`
+  - `artifacts/centered_label_revised_eval/offline_centered_deployability_summary.csv`
+  - `artifacts/centered_label_revised_eval/centered_label_revised_comparison_summary.json`
+  - `reports/centered_label_revised_eval/centered_label_revised_eval_summary.md`
+- 参数消融结果：
+  - `point`
+    - `AutoGluon mean MAE = 0.31072`
+    - `hard_out_ap_aligned = 0.21388`
+  - `uncertain`
+    - `e = 0.10`：`MAE = 0.26803`
+    - `e = 0.15`：`MAE = 0.22425`
+    - `e = 0.20`：`MAE = 0.17988`，为当前最优
+  - `gaussian`
+    - `sigma = 0.116`：`MAE = 0.33166`
+    - `sigma = 0.139`：`MAE = 0.32142`
+    - `sigma = 0.212`：`MAE = 0.26593`，为当前最优
+- 当前三种方法的外层主结果：
+  - `point`
+    - `mean MAE = 0.31072`
+    - `hard_out_ap_aligned = 0.21388`
+  - `uncertain_0.20`
+    - `mean MAE = 0.17988`
+    - `hard_out_ap_aligned = 0.22596`
+  - `gaussian_0.212`
+    - `mean MAE = 0.26593`
+    - `hard_out_ap_aligned = 0.24119`
+- `CQDI` 结果：
+  - 三种方法在 `measurement_error_scenario ∈ {0.10, 0.15, 0.20}` 下全部得到：
+    - `cqdi_mean = 0`
+    - `gate_pass_rate = 0`
+    - `recommended_status = FAIL`
+  - 直接原因是三种方法的 `hard_out_ap_aligned` 都没有达到 `ap_floor ≈ 0.26626`
+- 本轮结论：
+  - 如果只看 centered 标签拟合误差，`uncertain(e=0.20)` 明显优于当前 `point` 线。
+  - 如果将规范中的 `CQDI` 部署门槛一起纳入，三种方法在当前 centered 主线下都还不具备部署通过条件。
+  - 因此本轮最重要的结论不是“立刻切换到哪一种标签”，而是：
+    - `uncertain(e=0.20)` 是当前最值得继续保留的 centered 标签候选；
+    - 但 centered 这条线若要面向部署，仍受制于对硬越界风险的外部诊断能力。

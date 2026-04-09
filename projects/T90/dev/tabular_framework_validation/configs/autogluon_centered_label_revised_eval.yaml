@@ -1,0 +1,151 @@
+phase: centered_label_revised_eval
+
+data_source_statement:
+  source_condition: uncleaned_source
+  note: >
+    This experiment reuses the current best centered_desirability X-side recipe
+    and only replaces the Y-side label family according to the revised label spec.
+
+paths:
+  lims_path: ../../../data/t90-溴丁橡胶.xlsx
+  dcs_main_path: ../../../data/merge_data.csv
+  dcs_supplemental_path: ../../../data/merge_data_otr.csv
+  artifact_dir: ../artifacts/centered_label_revised_eval
+  report_dir: ../reports/centered_label_revised_eval
+  stage1_summary_path: ../artifacts/stage1_lag_scale_summary.json
+  stage3_summary_path: ../artifacts/stage3_regime_summary.json
+  stage4_summary_path: ../artifacts/stage4_interaction_summary.json
+  stage5_summary_path: ../artifacts/stage5_quality_summary.json
+  stage6_summary_path: ../artifacts/stage6_centered_quality_summary.json
+  stage7_summary_path: ../artifacts/stage7_final_summary.json
+  centered_outspec_eval_summary_path: ../artifacts/centered_desirability_outspec_eval/centered_desirability_outspec_eval_summary.json
+
+target_spec:
+  center: 8.45
+  tolerance: 0.25
+  center_band_low: 8.35
+  center_band_high: 8.55
+  spec_low: 8.20
+  spec_high: 8.70
+
+snapshot:
+  min_points_per_window: 5
+  stats:
+    - mean
+    - std
+    - min
+    - max
+    - last
+    - range
+    - delta
+
+validation:
+  outer_n_splits: 5
+  inner_n_splits: 3
+
+tasks:
+  five_bin:
+    bins:
+      - -.inf
+      - 8.0
+      - 8.2
+      - 8.7
+      - 8.9
+      - .inf
+
+measurement_error_scenarios:
+  - 0.10
+  - 0.15
+  - 0.20
+
+label_methods:
+  point:
+    enabled: true
+  uncertain:
+    enabled: true
+    uncertainty_model: uniform
+    err_half_width_grid:
+      - 0.10
+      - 0.15
+      - 0.20
+    integration_points: 21
+  gaussian:
+    enabled: true
+    sigma_grid:
+      - 0.116
+      - 0.139
+      - 0.212
+
+preferred_threshold_grid:
+  - 0.55
+  - 0.60
+  - 0.65
+  - 0.70
+  - 0.75
+  - 0.80
+  - 0.85
+
+preclean:
+  max_missing_ratio: 0.98
+  near_constant_unique_threshold: 1
+
+quality_feature_map:
+  missing_freeze:
+    - missing_ratio
+    - valid_count
+    - freeze_length
+    - freeze_ratio
+  jump_irregularity:
+    - max_jump
+    - time_since_last_jump
+    - update_irregularity
+  combined_quality:
+    - missing_ratio
+    - valid_count
+    - freeze_length
+    - freeze_ratio
+    - max_jump
+    - time_since_last_jump
+    - update_irregularity
+
+centered_quality_feature_map:
+  center_stability:
+    - mean_abs_z
+    - center_band_ratio
+    - center_hold_ratio
+  center_direction:
+    - last_z
+    - late_shift_z
+    - tail_bias
+    - reversion_score
+  centered_quality_full:
+    - mean_abs_z
+    - center_band_ratio
+    - center_hold_ratio
+    - last_z
+    - late_shift_z
+    - tail_bias
+    - reversion_score
+
+selection:
+  top_k: 400
+  ablation_primary_metric: mae
+
+cqdi:
+  center_prob_target: 0.50
+  center_lift_target: 1.50
+  safety_outspec_target: 0.08
+  preferred_rate_target: 0.20
+  preferred_rate_half_width: 0.12
+  gate_outspec_limit: 0.12
+  gate_preferred_rate_low: 0.08
+  gate_preferred_rate_high: 0.30
+  ap_floor_ratio: 0.95
+
+autogluon:
+  presets: medium_quality_faster_train
+  time_limit_seconds: 20
+  verbosity: 1
+  hyperparameters:
+    GBM: {}
+    XGB: {}

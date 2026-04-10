@@ -95,6 +95,7 @@ projects/**/support/targets/
 projects/**/support/evaluation/
 projects/**/plans/
 projects/**/reports/*
+projects/**/outputs/*
 
 # Keep example data under version control
 !projects/*/data_example/

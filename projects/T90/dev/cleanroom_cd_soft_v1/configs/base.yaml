@@ -1,0 +1,160 @@
+experiment:
+  name: exp001_data_label_split
+  run_tag: exp001
+
+paths:
+  lims_path: ../../../data/t90-溴丁橡胶.xlsx
+  dcs_main_path: ../../../data/merge_data.csv
+  dcs_supplemental_path: ../../../data/merge_data_otr.csv
+  output_root: ../outputs
+
+lims:
+  sample_time_col: 采样时间
+  target_col: t´c(90),min
+  sheet_names: null
+  aggregate_by: sample_time
+  context_feature_mode: numeric_non_target
+  context_feature_prefix: lims_ctx
+  valid_target_range:
+    min: 0.0
+    max: 30.0
+
+data_boundary:
+  require_lims_within_dcs_time_range: true
+  boundary_margin_minutes: 0
+
+dcs:
+  time_col: time
+  supplemental_suffix: _supp
+  min_points_per_window: 5
+  max_asof_gap_minutes: 10
+  preprocessing:
+    denoise_method: historian_sg
+    hold_last_value: true
+    ema_span_rows: 5
+    hampel:
+      enabled: true
+      window_rows: 15
+      n_sigmas: 3.0
+      replacement: interpolate
+    sg_filter:
+      window_length: 15
+      polyorder: 2
+      min_std: 1.0e-6
+  deduplication:
+    enabled: true
+    compare_round_decimals: 6
+    representative_policy: shortest_name
+    min_non_null_overlap_fraction: 0.95
+    near_duplicate:
+      enabled: true
+      sample_rows: 20000
+      corr_threshold: 0.999999
+      max_mean_abs_diff: 1.0e-6
+  stats:
+    - mean
+    - median
+    - var
+    - std
+    - min
+    - max
+    - last
+    - range
+    - delta
+    - slope
+    - cv
+    - missing_rate
+
+alignment:
+  use_only_past: true
+  candidate_window_minutes:
+    - 15
+    - 60
+    - 240
+  candidate_lag_minutes:
+    - 0
+    - 15
+    - 60
+  primary_window_minutes: 240
+  primary_lag_minutes: 0
+
+target_spec:
+  center: 8.45
+  tolerance_half_width: 0.25
+  spec_low: 8.20
+  spec_high: 8.70
+  center_band_low: 8.35
+  center_band_high: 8.55
+
+labels:
+  cd_method: generalized_bell_uncertain
+  bell_width: 0.30
+  bell_p: 6.0
+  integration_sigma_span: 4.0
+  measurement_error_default: 0.15
+  measurement_error_scenarios:
+    - 0.10
+    - 0.15
+    - 0.20
+  process_sigma: 0.05
+  align_sigma: 0.05
+  integration_points: 21
+  gaussian_boundary_alpha: 0.20
+  repeat_std_tolerance: 0.10
+  boundary_weight:
+    enabled: true
+    band: 0.15
+    weight_inside_band: 0.70
+  minimum_sample_weight: 0.05
+  boundary_band_list:
+    - 0.10
+    - 0.15
+    - 0.20
+
+split:
+  strategy: time_purged_with_missing_group_audit
+  group_cols:
+    - batch_id
+    - regime_id
+    - work_order
+  train_ratio: 0.70
+  valid_ratio: 0.15
+  test_ratio: 0.15
+  purge_minutes: 120
+
+evaluation_note:
+  cqdi_radi_status: >
+    Prior CQDI/RADI runs returned zero scores. Exp-001 records the scored-row
+    ingredients needed for recalibration, but CQDI/RADI are not first-stage
+    gates.
+
+modeling:
+  prepared_run_dir: null
+  include_lims_context_features: false
+  window_filter:
+    window_minutes: null
+    lag_minutes: null
+  feature_selection:
+    enabled: true
+    ranking_method: target_correlation
+    max_features: 300
+    max_missing_rate: 0.80
+    min_variance: 1.0e-12
+    candidate_pool_size: 900
+    correlation_threshold: 0.995
+    always_keep_prefixes:
+      - lims_ctx__
+  targets:
+    - cd_mean
+    - p_pass_soft
+    - is_out_spec_obs
+  simple_baseline:
+    enabled: true
+  autogluon:
+    enabled: true
+    presets: medium_quality_faster_train
+    time_limit_seconds: 60
+    verbosity: 1
+    max_memory_usage_ratio: 4.0
+    hyperparameters:
+      GBM: {}

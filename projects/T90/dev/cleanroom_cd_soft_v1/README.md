@@ -100,9 +100,17 @@ The default configuration now applies two redundancy controls:
 LIMS context features are available only when explicitly requested with
 `--include-lims-context`.
 
-The current default label is `generalized_bell_uncertain`: a generalized bell
-desirability mapping integrated over the effective measurement/process/alignment
-uncertainty.
+The current default label is `generalized_bell`: a generalized bell
+desirability mapping applied directly to the observed T90 value, with
+`bell_width=0.40` and `bell_p=4.0`. Gaussian error integration is intentionally
+not used. The auxiliary `p_pass_soft` uses bounded error interval overlap with
+the spec band.
+
+The current default quick baseline uses mixed losses:
+
+- `cd_mean`: Huber;
+- `p_pass_soft`: soft-label binary cross-entropy;
+- `is_out_spec_obs`: binary cross-entropy.
 
 ## Current Window Recommendation
 

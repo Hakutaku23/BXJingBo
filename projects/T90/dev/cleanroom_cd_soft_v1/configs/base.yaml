@@ -87,10 +87,12 @@ target_spec:
   center_band_high: 8.55
 
 labels:
-  cd_method: generalized_bell_uncertain
-  bell_width: 0.30
-  bell_p: 6.0
-  integration_sigma_span: 4.0
+  cd_method: generalized_bell
+  bell_width: 0.40
+  bell_p: 4.0
+  cd_uncertainty_method: point
+  p_pass_soft_method: bounded_uniform
+  error_combination: additive
   measurement_error_default: 0.15
   measurement_error_scenarios:
     - 0.10
@@ -150,6 +152,12 @@ modeling:
     - is_out_spec_obs
   simple_baseline:
     enabled: true
+    loss_mode: mixed
+    huber_epsilon: 1.35
+    huber_alpha: 0.0001
+    huber_max_iter: 5000
+    bce_l2: 0.0001
+    bce_max_iter: 1000
   autogluon:
     enabled: true
     presets: medium_quality_faster_train

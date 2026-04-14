@@ -9,9 +9,11 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+from scipy.optimize import minimize
+from scipy.special import expit
 from scipy.stats import spearmanr
 from sklearn.impute import SimpleImputer
-from sklearn.linear_model import LogisticRegression, Ridge
+from sklearn.linear_model import HuberRegressor, LogisticRegression, Ridge
 from sklearn.metrics import (
     average_precision_score,
     brier_score_loss,
@@ -216,6 +218,62 @@ def binary_metrics(y_true: pd.Series, score: np.ndarray) -> dict[str, float]:
     return result
 
 
+def soft_binary_cross_entropy(y_true: pd.Series, score: np.ndarray) -> float:
+    y = np.clip(y_true.to_numpy(dtype=float), 0.0, 1.0)
+    s = np.clip(np.asarray(score, dtype=float), 1.0e-7, 1.0 - 1.0e-7)
+    return float(-np.mean(y * np.log(s) + (1.0 - y) * np.log(1.0 - s)))
+
+
+def fit_soft_bce_baseline(
+    train: pd.DataFrame,
+    test: pd.DataFrame,
+    features: list[str],
+    target: str,
+    config: dict[str, Any],
+) -> tuple[np.ndarray, dict[str, float]]:
+    baseline_cfg = config["modeling"].get("simple_baseline", {})
+    l2 = float(baseline_cfg.get("bce_l2", 1.0e-4))
+    max_iter = int(baseline_cfg.get("bce_max_iter", 1000))
+
+    imputer = SimpleImputer(strategy="median")
+    scaler = StandardScaler()
+    x_train = scaler.fit_transform(imputer.fit_transform(train[features]))
+    x_test = scaler.transform(imputer.transform(test[features]))
+    y = np.clip(train[target].to_numpy(dtype=float), 0.0, 1.0)
+    sample_weight = train["sample_weight"].to_numpy(dtype=float) if "sample_weight" in train.columns else np.ones(len(train), dtype=float)
+    sample_weight = sample_weight / max(float(sample_weight.mean()), 1.0e-12)
+
+    init = np.zeros(x_train.shape[1] + 1, dtype=float)
+
+    def objective(params: np.ndarray) -> tuple[float, np.ndarray]:
+        coef = params[:-1]
+        intercept = params[-1]
+        logits = x_train.dot(coef) + intercept
+        pred = expit(logits)
+        pred_clipped = np.clip(pred, 1.0e-7, 1.0 - 1.0e-7)
+        loss_terms = -(y * np.log(pred_clipped) + (1.0 - y) * np.log(1.0 - pred_clipped))
+        loss = float(np.mean(sample_weight * loss_terms) + 0.5 * l2 * np.dot(coef, coef))
+        residual = sample_weight * (pred - y) / len(y)
+        grad_coef = x_train.T.dot(residual) + l2 * coef
+        grad_intercept = np.array([residual.sum()])
+        return loss, np.concatenate([grad_coef, grad_intercept])
+
+    result = minimize(
+        fun=lambda params: objective(params)[0],
+        x0=init,
+        jac=lambda params: objective(params)[1],
+        method="L-BFGS-B",
+        options={"maxiter": max_iter},
+    )
+    params = result.x
+    pred = expit(x_test.dot(params[:-1]) + params[-1])
+    metrics = regression_metrics(test[target], pred)
+    metrics["soft_binary_cross_entropy"] = soft_binary_cross_entropy(test[target], pred)
+    metrics["optimizer_success"] = bool(result.success)
+    metrics["optimizer_iterations"] = int(result.nit)
+    return pred, metrics
+
+
 def fit_simple_baseline(
     train: pd.DataFrame,
     valid: pd.DataFrame,
@@ -223,6 +281,8 @@ def fit_simple_baseline(
     features: list[str],
     target: str,
     problem_type: str,
+    config: dict[str, Any],
+    loss_mode: str,
 ) -> tuple[np.ndarray, dict[str, float]]:
     if problem_type == "binary":
         model = Pipeline(
@@ -237,21 +297,54 @@ def fit_simple_baseline(
             fit_kwargs["model__sample_weight"] = train["sample_weight"].to_numpy(dtype=float)
         model.fit(train[features], train[target].astype(int), **fit_kwargs)
         pred = model.predict_proba(test[features])[:, 1]
-        return pred, binary_metrics(test[target], pred)
+        metrics = binary_metrics(test[target], pred)
+        metrics["binary_cross_entropy"] = soft_binary_cross_entropy(test[target], pred)
+        return pred, metrics
 
-    model = Pipeline(
-        steps=[
-            ("imputer", SimpleImputer(strategy="median")),
-            ("scaler", StandardScaler()),
-            ("model", Ridge(alpha=1.0)),
-        ]
-    )
+    if loss_mode == "bce":
+        return fit_soft_bce_baseline(train, test, features, target, config)
+
+    if loss_mode == "huber":
+        baseline_cfg = config["modeling"].get("simple_baseline", {})
+        model = Pipeline(
+            steps=[
+                ("imputer", SimpleImputer(strategy="median")),
+                ("scaler", StandardScaler()),
+                (
+                    "model",
+                    HuberRegressor(
+                        epsilon=float(baseline_cfg.get("huber_epsilon", 1.35)),
+                        alpha=float(baseline_cfg.get("huber_alpha", 1.0e-4)),
+                        max_iter=int(baseline_cfg.get("huber_max_iter", 1000)),
+                    ),
+                ),
+            ]
+        )
+    else:
+        model = Pipeline(
+            steps=[
+                ("imputer", SimpleImputer(strategy="median")),
+                ("scaler", StandardScaler()),
+                ("model", Ridge(alpha=1.0)),
+            ]
+        )
     fit_kwargs = {}
     if "sample_weight" in train.columns:
         fit_kwargs["model__sample_weight"] = train["sample_weight"].to_numpy(dtype=float)
     model.fit(train[features], train[target].astype(float), **fit_kwargs)
     pred = np.clip(model.predict(test[features]), 0.0, 1.0)
     return pred, regression_metrics(test[target], pred)
+
+
+def resolve_target_loss_mode(target: str, problem_type: str, requested_loss_mode: str) -> str:
+    if problem_type == "binary":
+        return "bce"
+    if requested_loss_mode == "mixed":
+        if target == "cd_mean":
+            return "huber"
+        if target == "p_pass_soft":
+            return "bce"
+    return requested_loss_mode
 
 
 def fit_autogluon(
@@ -329,6 +422,7 @@ def main() -> None:
     parser.add_argument("--window-minutes", type=int, default=None)
     parser.add_argument("--lag-minutes", type=int, default=None)
     parser.add_argument("--targets", nargs="*", default=None)
+    parser.add_argument("--loss-mode", choices=["ridge", "huber", "bce", "mixed"], default=None)
     parser.add_argument("--no-autogluon", action="store_true")
     args = parser.parse_args()
 
@@ -357,6 +451,7 @@ def main() -> None:
     window_minutes = int(window_minutes) if window_minutes is not None else None
     lag_minutes = int(lag_minutes) if lag_minutes is not None else None
     targets = args.targets or list(config["modeling"]["targets"])
+    loss_mode = args.loss_mode or str(config["modeling"].get("simple_baseline", {}).get("loss_mode", "ridge"))
     train = frame[frame["split"] == "train"].copy()
     valid = frame[frame["split"] == "valid"].copy()
     test = frame[frame["split"] == "test"].copy()
@@ -379,13 +474,16 @@ def main() -> None:
         if not features:
             raise ValueError(f"No features remain after feature selection for target {target}.")
 
-        baseline_pred, baseline_metrics = fit_simple_baseline(train_task, valid_task, test_task, features, target, problem_type)
+        target_loss_mode = resolve_target_loss_mode(target, problem_type, loss_mode)
+        baseline_pred, baseline_metrics = fit_simple_baseline(train_task, valid_task, test_task, features, target, problem_type, config, target_loss_mode)
         scored.loc[test_task.index, f"simple_{target}_pred"] = baseline_pred
         target_summary.setdefault(target, {})["feature_selection"] = feature_selection_audit
         rows.append(
             {
                 "target": target,
                 "framework": "simple_baseline",
+                "loss_mode": target_loss_mode,
+                "requested_loss_mode": loss_mode,
                 "problem_type": problem_type,
                 "samples_train": int(len(train_task)),
                 "samples_valid": int(len(valid_task)),
@@ -457,6 +555,7 @@ def main() -> None:
             "lag_minutes": lag_minutes,
         },
         "raw_feature_count": int(len(raw_features)),
+        "loss_mode": loss_mode,
         "split_counts": frame["split"].value_counts().to_dict(),
         "targets": target_summary,
     }

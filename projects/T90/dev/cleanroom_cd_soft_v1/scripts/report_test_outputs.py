@@ -108,7 +108,7 @@ def write_report(path: Path, summary: dict[str, Any], table_csv: Path, plot_path
         "",
         "## 说明",
         "",
-        "- 当前最优方案为 Exp-007 mixed + DCS + LIMS context。",
+        "- 本报告由传入的 model_run_dir 生成，结果对应当前模型目录内的测试集打分文件。",
         "- 当前模型预测 `cd_mean`、`p_pass_soft` 和 `is_out_spec_obs`，没有直接训练 `t90` 回归头，因此 `t90_pred` 为空。",
         "- `t90_pass_probability_pred` 使用 `simple_p_pass_soft_pred`。",
         "",

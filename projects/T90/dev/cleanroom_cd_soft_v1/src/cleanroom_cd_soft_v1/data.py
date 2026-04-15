@@ -345,6 +345,12 @@ def build_feature_table(samples: pd.DataFrame, dcs: pd.DataFrame, config: dict[s
     lags = [int(v) for v in config["alignment"]["candidate_lag_minutes"]]
     primary_window = int(config["alignment"]["primary_window_minutes"])
     primary_lag = int(config["alignment"]["primary_lag_minutes"])
+    drift_cfg = config["dcs"].get("drift_features", {})
+    drift_enabled = bool(drift_cfg.get("enabled", False))
+    drift_short_window = int(drift_cfg.get("short_window_minutes", 30))
+    drift_long_window = int(drift_cfg.get("long_window_minutes", primary_window))
+    drift_stat = str(drift_cfg.get("stat", "mean"))
+    drift_name = str(drift_cfg.get("name", f"drift_{drift_short_window}m_minus_{drift_long_window}m"))
 
     indexed = dcs.set_index(time_col).sort_index()
     numeric_cols = list(indexed.columns)
@@ -370,6 +376,9 @@ def build_feature_table(samples: pd.DataFrame, dcs: pd.DataFrame, config: dict[s
         if "max" in stats or "range" in stats:
             stat_frames["max"] = rolling.max()
         count_frame = rolling.count()
+        drift_short_frame: pd.DataFrame | None = None
+        if drift_enabled and window == drift_long_window and drift_stat == "mean":
+            drift_short_frame = indexed.rolling(f"{drift_short_window}min", closed="right", min_periods=1).mean()
 
         for lag in lags:
             prefix = f"w{window}_lag{lag}"
@@ -413,6 +422,12 @@ def build_feature_table(samples: pd.DataFrame, dcs: pd.DataFrame, config: dict[s
                 std_values = _asof_values(targets, stat_frames["std"], time_col, numeric_cols, tolerance)[numeric_cols]
                 cv_values = std_values / mean_values.abs().replace(0.0, np.nan)
                 prefix_parts.append(cv_values.rename(columns={col: f"{prefix}__{col}__cv" for col in numeric_cols}))
+
+            if drift_short_frame is not None and "mean" in stat_frames:
+                short_mean_values = _asof_values(targets, drift_short_frame, time_col, numeric_cols, tolerance)[numeric_cols]
+                long_mean_values = _asof_values(targets, stat_frames["mean"], time_col, numeric_cols, tolerance)[numeric_cols]
+                drift_values = short_mean_values - long_mean_values
+                prefix_parts.append(drift_values.rename(columns={col: f"{prefix}__{col}__{drift_name}" for col in numeric_cols}))
 
             if "missing_rate" in stats:
                 valid_counts = _asof_values(targets, count_frame, time_col, numeric_cols, tolerance)[numeric_cols]

@@ -12,6 +12,7 @@ import pandas as pd
 from scipy.optimize import minimize
 from scipy.special import expit
 from scipy.stats import spearmanr
+from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import HuberRegressor, LogisticRegression, Ridge
 from sklearn.metrics import (
@@ -65,6 +66,7 @@ def json_ready(value: Any) -> Any:
 def feature_columns(
     frame: pd.DataFrame,
     include_lims_context: bool,
+    include_downstream: bool = False,
     window_minutes: int | None = None,
     lag_minutes: int | None = None,
 ) -> list[str]:
@@ -74,7 +76,8 @@ def feature_columns(
     if lag_minutes is not None:
         dcs_features = [col for col in dcs_features if f"_lag{int(lag_minutes)}__" in col]
     context_features = [col for col in frame.columns if col.startswith("lims_ctx__")]
-    features = dcs_features + (context_features if include_lims_context else [])
+    downstream_features = [col for col in frame.columns if col.startswith("dw_lag") and "__" in col]
+    features = dcs_features + (downstream_features if include_downstream else []) + (context_features if include_lims_context else [])
     blocked_suffixes = {"__count"}
     return [col for col in features if not any(col.endswith(suffix) for suffix in blocked_suffixes)]
 
@@ -84,9 +87,20 @@ def summarize_feature_groups(features: list[str]) -> dict[str, Any]:
     by_window_lag: dict[str, int] = {}
     by_stat: dict[str, int] = {}
     lims_context = 0
+    downstream = 0
     for feature in features:
         if feature.startswith("lims_ctx__"):
             lims_context += 1
+            continue
+        if feature.startswith("dw_lag"):
+            downstream += 1
+            parts = feature.split("__")
+            if len(parts) >= 3:
+                prefix = parts[0]
+                stat = parts[-1]
+                by_window["downstream"] = by_window.get("downstream", 0) + 1
+                by_window_lag[prefix] = by_window_lag.get(prefix, 0) + 1
+                by_stat[stat] = by_stat.get(stat, 0) + 1
             continue
         parts = feature.split("__")
         if len(parts) < 3:
@@ -103,6 +117,7 @@ def summarize_feature_groups(features: list[str]) -> dict[str, Any]:
         "by_window_lag": dict(sorted(by_window_lag.items())),
         "by_stat": dict(sorted(by_stat.items())),
         "lims_context_count": lims_context,
+        "downstream_count": downstream,
     }
 
 
@@ -274,6 +289,101 @@ def fit_soft_bce_baseline(
     return pred, metrics
 
 
+def tree_model_config(config: dict[str, Any]) -> dict[str, Any]:
+    baseline_cfg = config["modeling"].get("simple_baseline", {})
+    tree_cfg = baseline_cfg.get("tree_huber", {})
+    return {
+        "n_estimators": int(tree_cfg.get("n_estimators", 250)),
+        "learning_rate": float(tree_cfg.get("learning_rate", 0.03)),
+        "max_depth": int(tree_cfg.get("max_depth", 3)),
+        "subsample": float(tree_cfg.get("subsample", 0.8)),
+        "min_samples_leaf": int(tree_cfg.get("min_samples_leaf", 10)),
+        "random_state": int(tree_cfg.get("random_state", 20260414)),
+        "huber_alpha": float(tree_cfg.get("huber_alpha", 0.9)),
+    }
+
+
+def fit_tree_huber_baseline(
+    train: pd.DataFrame,
+    test: pd.DataFrame,
+    features: list[str],
+    target: str,
+    config: dict[str, Any],
+) -> tuple[np.ndarray, dict[str, float]]:
+    tree_cfg = tree_model_config(config)
+    model = Pipeline(
+        steps=[
+            ("imputer", SimpleImputer(strategy="median")),
+            (
+                "model",
+                GradientBoostingRegressor(
+                    loss="huber",
+                    alpha=tree_cfg["huber_alpha"],
+                    n_estimators=tree_cfg["n_estimators"],
+                    learning_rate=tree_cfg["learning_rate"],
+                    max_depth=tree_cfg["max_depth"],
+                    subsample=tree_cfg["subsample"],
+                    min_samples_leaf=tree_cfg["min_samples_leaf"],
+                    random_state=tree_cfg["random_state"],
+                ),
+            ),
+        ]
+    )
+    fit_kwargs = {}
+    if "sample_weight" in train.columns:
+        fit_kwargs["model__sample_weight"] = train["sample_weight"].to_numpy(dtype=float)
+    model.fit(train[features], train[target].astype(float), **fit_kwargs)
+    pred = np.clip(model.predict(test[features]), 0.0, 1.0)
+    metrics = regression_metrics(test[target], pred)
+    metrics["tree_n_estimators"] = float(tree_cfg["n_estimators"])
+    metrics["tree_learning_rate"] = float(tree_cfg["learning_rate"])
+    metrics["tree_max_depth"] = float(tree_cfg["max_depth"])
+    metrics["tree_min_samples_leaf"] = float(tree_cfg["min_samples_leaf"])
+    metrics["tree_subsample"] = float(tree_cfg["subsample"])
+    metrics["tree_huber_alpha"] = float(tree_cfg["huber_alpha"])
+    return pred, metrics
+
+
+def fit_tree_binary_baseline(
+    train: pd.DataFrame,
+    test: pd.DataFrame,
+    features: list[str],
+    target: str,
+    config: dict[str, Any],
+) -> tuple[np.ndarray, dict[str, float]]:
+    tree_cfg = tree_model_config(config)
+    model = Pipeline(
+        steps=[
+            ("imputer", SimpleImputer(strategy="median")),
+            (
+                "model",
+                GradientBoostingClassifier(
+                    loss="log_loss",
+                    n_estimators=tree_cfg["n_estimators"],
+                    learning_rate=tree_cfg["learning_rate"],
+                    max_depth=tree_cfg["max_depth"],
+                    subsample=tree_cfg["subsample"],
+                    min_samples_leaf=tree_cfg["min_samples_leaf"],
+                    random_state=tree_cfg["random_state"],
+                ),
+            ),
+        ]
+    )
+    fit_kwargs = {}
+    if "sample_weight" in train.columns:
+        fit_kwargs["model__sample_weight"] = train["sample_weight"].to_numpy(dtype=float)
+    model.fit(train[features], train[target].astype(int), **fit_kwargs)
+    pred = model.predict_proba(test[features])[:, 1]
+    metrics = binary_metrics(test[target], pred)
+    metrics["binary_cross_entropy"] = soft_binary_cross_entropy(test[target], pred)
+    metrics["tree_n_estimators"] = float(tree_cfg["n_estimators"])
+    metrics["tree_learning_rate"] = float(tree_cfg["learning_rate"])
+    metrics["tree_max_depth"] = float(tree_cfg["max_depth"])
+    metrics["tree_min_samples_leaf"] = float(tree_cfg["min_samples_leaf"])
+    metrics["tree_subsample"] = float(tree_cfg["subsample"])
+    return pred, metrics
+
+
 def fit_simple_baseline(
     train: pd.DataFrame,
     valid: pd.DataFrame,
@@ -285,6 +395,8 @@ def fit_simple_baseline(
     loss_mode: str,
 ) -> tuple[np.ndarray, dict[str, float]]:
     if problem_type == "binary":
+        if loss_mode == "tree_bce":
+            return fit_tree_binary_baseline(train, test, features, target, config)
         model = Pipeline(
             steps=[
                 ("imputer", SimpleImputer(strategy="median")),
@@ -303,6 +415,9 @@ def fit_simple_baseline(
 
     if loss_mode == "bce":
         return fit_soft_bce_baseline(train, test, features, target, config)
+
+    if loss_mode == "tree_huber":
+        return fit_tree_huber_baseline(train, test, features, target, config)
 
     if loss_mode == "huber":
         baseline_cfg = config["modeling"].get("simple_baseline", {})
@@ -338,7 +453,11 @@ def fit_simple_baseline(
 
 def resolve_target_loss_mode(target: str, problem_type: str, requested_loss_mode: str) -> str:
     if problem_type == "binary":
+        if requested_loss_mode in {"tree_huber", "tree_mixed"}:
+            return "tree_bce"
         return "bce"
+    if requested_loss_mode in {"tree_huber", "tree_mixed"}:
+        return "tree_huber"
     if requested_loss_mode == "mixed":
         if target == "cd_mean":
             return "huber"
@@ -396,6 +515,7 @@ def write_report(path: Path, summary: dict[str, Any]) -> None:
         f"- prepared_run_dir: `{summary['prepared_run_dir']}`",
         f"- model_run_dir: `{summary['model_run_dir']}`",
         f"- include_lims_context_features: `{summary['include_lims_context_features']}`",
+        f"- include_downstream_features: `{summary.get('include_downstream_features', False)}`",
         f"- window_filter: `{summary['window_filter']}`",
         f"- raw_feature_count: `{summary['raw_feature_count']}`",
         "",
@@ -419,10 +539,11 @@ def main() -> None:
     parser.add_argument("--prepared-run-dir", type=Path, default=None)
     parser.add_argument("--run-tag", type=str, default="exp002_quick")
     parser.add_argument("--include-lims-context", action="store_true")
+    parser.add_argument("--include-downstream", action="store_true")
     parser.add_argument("--window-minutes", type=int, default=None)
     parser.add_argument("--lag-minutes", type=int, default=None)
     parser.add_argument("--targets", nargs="*", default=None)
-    parser.add_argument("--loss-mode", choices=["ridge", "huber", "bce", "mixed"], default=None)
+    parser.add_argument("--loss-mode", choices=["ridge", "huber", "bce", "mixed", "tree_huber", "tree_mixed"], default=None)
     parser.add_argument("--no-autogluon", action="store_true")
     args = parser.parse_args()
 
@@ -445,6 +566,7 @@ def main() -> None:
     frame = pd.read_csv(prepared_run / "feature_table.csv")
     frame = frame[frame["split"].isin(["train", "valid", "test"])].copy()
     include_context = bool(args.include_lims_context or config["modeling"].get("include_lims_context_features", False))
+    include_downstream = bool(args.include_downstream)
     configured_filter = config["modeling"].get("window_filter", {})
     window_minutes = args.window_minutes if args.window_minutes is not None else configured_filter.get("window_minutes")
     lag_minutes = args.lag_minutes if args.lag_minutes is not None else configured_filter.get("lag_minutes")
@@ -455,7 +577,13 @@ def main() -> None:
     train = frame[frame["split"] == "train"].copy()
     valid = frame[frame["split"] == "valid"].copy()
     test = frame[frame["split"] == "test"].copy()
-    raw_features = feature_columns(frame, include_context, window_minutes=window_minutes, lag_minutes=lag_minutes)
+    raw_features = feature_columns(
+        frame,
+        include_context,
+        include_downstream=include_downstream,
+        window_minutes=window_minutes,
+        lag_minutes=lag_minutes,
+    )
 
     rows: list[dict[str, Any]] = []
     scored = test[["sample_id", "sample_time", "split", "t90", "cd_mean", "p_pass_soft", "is_out_spec_obs", "sample_weight"]].copy()
@@ -550,6 +678,7 @@ def main() -> None:
         "prepared_run_dir": str(prepared_run),
         "model_run_dir": str(model_run_dir),
         "include_lims_context_features": include_context,
+        "include_downstream_features": include_downstream,
         "window_filter": {
             "window_minutes": window_minutes,
             "lag_minutes": lag_minutes,

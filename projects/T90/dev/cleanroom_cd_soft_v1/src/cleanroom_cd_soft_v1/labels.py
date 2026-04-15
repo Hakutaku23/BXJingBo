@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import math
 from typing import Any
 
 import numpy as np
@@ -22,12 +21,6 @@ def centered_desirability_uncertain(
     matrix = values.to_numpy(dtype=float)[:, None] + deltas[None, :]
     scores = np.maximum(0.0, 1.0 - np.abs(matrix - center) / tolerance)
     return pd.Series(scores.mean(axis=1), index=values.index, dtype=float)
-
-
-def centered_desirability_gaussian(values: pd.Series, center: float, tolerance: float, alpha: float) -> pd.Series:
-    sigma = tolerance / math.sqrt(2.0 * math.log(1.0 / alpha))
-    arr = values.to_numpy(dtype=float)
-    return pd.Series(np.exp(-((arr - center) ** 2) / (2.0 * sigma**2)), index=values.index, dtype=float)
 
 
 def generalized_bell_desirability(values: pd.Series | np.ndarray, center: float, width: float, p: float) -> np.ndarray:
@@ -117,12 +110,6 @@ def add_noise_aware_labels(samples: pd.DataFrame, config: dict[str, Any]) -> pd.
             integration_points=int(label_cfg["integration_points"]),
         )
         result["cd_std"] = (result["cd_raw"] - result["cd_mean"]).abs()
-    result["cd_gaussian"] = centered_desirability_gaussian(
-        y,
-        center=center,
-        tolerance=tol,
-        alpha=float(label_cfg["gaussian_boundary_alpha"]),
-    )
     result["cd_std_ref"] = result["cd_std"]
 
     pass_method = str(label_cfg.get("p_pass_soft_method", "bounded_uniform"))
@@ -188,6 +175,12 @@ def add_noise_aware_labels(samples: pd.DataFrame, config: dict[str, Any]) -> pd.
             1.0,
         )
     result["boundary_weight"] = boundary_weight
+    out_spec_cfg = label_cfg.get("out_spec_weight", {})
+    if bool(out_spec_cfg.get("enabled", False)):
+        out_spec_weight = np.where(result["is_out_spec_obs"].astype(int) == 1, float(out_spec_cfg.get("multiplier", 2.5)), 1.0)
+    else:
+        out_spec_weight = np.ones(len(result), dtype=float)
+    result["out_spec_weight"] = out_spec_weight
 
     for col in ["align_confidence", "state_confidence"]:
         if col not in result.columns:
@@ -197,6 +190,10 @@ def add_noise_aware_labels(samples: pd.DataFrame, config: dict[str, Any]) -> pd.
         * result["state_confidence"].astype(float)
         * result["repeat_consistency_weight"].astype(float)
         * result["boundary_weight"].astype(float)
+        * result["out_spec_weight"].astype(float)
     )
-    result["sample_weight"] = weight.clip(lower=float(label_cfg["minimum_sample_weight"]), upper=1.0)
+    result["sample_weight"] = weight.clip(
+        lower=float(label_cfg["minimum_sample_weight"]),
+        upper=float(label_cfg.get("maximum_sample_weight", 1.0)),
+    )
     return result

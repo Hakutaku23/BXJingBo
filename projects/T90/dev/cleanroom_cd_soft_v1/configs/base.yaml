@@ -6,6 +6,7 @@ paths:
   lims_path: ../../../data/t90-溴丁橡胶.xlsx
   dcs_main_path: ../../../data/merge_data.csv
   dcs_supplemental_path: ../../../data/merge_data_otr.csv
+  downstream_path: ../../../data/output.csv
   output_root: ../outputs
 
 lims:
@@ -64,6 +65,30 @@ dcs:
     - slope
     - cv
     - missing_rate
+  drift_features:
+    enabled: true
+    short_window_minutes: 30
+    long_window_minutes: 240
+    stat: mean
+    name: drift_mean_30m_minus_240m
+
+downstream:
+  enabled: true
+  time_col: time
+  feature_start_col_1based: 9
+  feature_end_col_1based: 412
+  prefix: dw
+  feature_mode: direct_lag_snapshot
+  max_asof_gap_minutes: 5
+  candidate_lag_minutes:
+    - 0
+    - 5
+    - 15
+    - 30
+  max_missing_rate: 0.95
+  min_std: 1.0e-8
+  duplicate_sample_rows: 20000
+  duplicate_round_decimals: 6
 
 alignment:
   use_only_past: true
@@ -88,8 +113,8 @@ target_spec:
 
 labels:
   cd_method: generalized_bell
-  bell_width: 0.40
-  bell_p: 4.0
+  bell_width: 0.32
+  bell_p: 6.0
   cd_uncertainty_method: point
   p_pass_soft_method: bounded_uniform
   error_combination: additive
@@ -101,13 +126,16 @@ labels:
   process_sigma: 0.05
   align_sigma: 0.05
   integration_points: 21
-  gaussian_boundary_alpha: 0.20
   repeat_std_tolerance: 0.10
   boundary_weight:
     enabled: true
     band: 0.15
     weight_inside_band: 0.70
+  out_spec_weight:
+    enabled: true
+    multiplier: 2.5
   minimum_sample_weight: 0.05
+  maximum_sample_weight: 3.0
   boundary_band_list:
     - 0.10
     - 0.15
@@ -152,12 +180,20 @@ modeling:
     - is_out_spec_obs
   simple_baseline:
     enabled: true
-    loss_mode: mixed
+    loss_mode: tree_mixed
     huber_epsilon: 1.35
     huber_alpha: 0.0001
     huber_max_iter: 5000
     bce_l2: 0.0001
     bce_max_iter: 1000
+    tree_huber:
+      n_estimators: 250
+      learning_rate: 0.03
+      max_depth: 3
+      subsample: 0.8
+      min_samples_leaf: 10
+      huber_alpha: 0.9
+      random_state: 20260414
   autogluon:
     enabled: true
     presets: medium_quality_faster_train

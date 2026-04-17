@@ -64,6 +64,10 @@ def safe_col(name: str) -> str:
 def infer_halogen_stage(raw_col: str) -> tuple[str, int, str]:
     """Map a DCS point to an approximate process-stage lag from the flow chart."""
     col = str(raw_col).upper()
+    if "C50604" in col:
+        return "calcium_stearate_additive_feed", 70, "calcium stearate additive temperature; side-feed to additive region"
+    if "C52601" in col:
+        return "m526_post_r514_outlet", 55, "M526 outlet after R514 and before V530 flash section"
     if any(token in col for token in ["C500", "C510", "CM510", "51004", "51006", "51007"]):
         return "feed_r510", 180, "feed/V510/R510 first reaction stage"
     if any(token in col for token in ["C511", "CM511"]):
@@ -90,6 +94,8 @@ def stage_candidate_lags(stage: str, primary_lag: int) -> list[int]:
         "r512_buffer": [60, 80, 120],
         "r513_neutralization": [60, 75, 120],
         "r514_additive": [45, 70, 100],
+        "calcium_stearate_additive_feed": [45, 70, 100],
+        "m526_post_r514_outlet": [30, 55, 75],
         "v530_flash": [15, 45, 75],
         "v532_buffer": [0, 30, 60],
         "v540_t300": [0, 15, 60],
